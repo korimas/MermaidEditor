@@ -1,6 +1,7 @@
 # Mermaid 在线编辑器
 
 一个功能强大的在线 Mermaid 图表编辑器，提供实时预览、模板选择、图表保存和多格式导出功能。
+[demo](https://korimas.github.io/MermaidEditor/)
 
 ## ✨ 功能特性
 
