@@ -1,8 +1,9 @@
-"use client"
-
+/**
+ * Drawer组件
+ * 抽屉式侧边栏组件
+ */
 import * as React from "react"
 import { Drawer as DrawerPrimitive } from "vaul"
-
 import { cn } from "@/lib/utils"
 
 const Drawer = ({

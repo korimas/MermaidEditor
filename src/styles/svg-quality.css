@@ -1,0 +1,101 @@
+/**
+ * SVG矢量图优化样式 
+ * 确保SVG以真正的矢量方式渲染，放大不影响清晰度
+ */
+
+/* 确保容器不影响SVG矢量渲染 */
+.mermaid-preview-container {
+  /* 禁用所有可能导致像素化的属性 */
+  transform: none !important;
+  will-change: auto !important;
+  backface-visibility: visible !important;
+  perspective: none !important;
+  /* 确保容器不裁剪内容 */
+  overflow: visible;
+}
+
+/* SVG矢量渲染优化 */
+.mermaid-preview-container svg {
+  /* 核心矢量渲染设置 */
+  shape-rendering: geometricPrecision !important;
+  text-rendering: geometricPrecision !important;
+  image-rendering: optimizeQuality !important;
+  
+  /* 确保SVG保持矢量特性 */
+  vector-effect: non-scaling-stroke !important;
+  
+  /* 禁用可能导致像素化的属性 */
+  transform: none !important;
+  will-change: auto !important;
+  backface-visibility: visible !important;
+  
+  /* 字体渲染优化 */
+  -webkit-font-smoothing: subpixel-antialiased !important;
+  -moz-osx-font-smoothing: auto !important;
+  font-smooth: auto !important;
+  
+  /* 确保SVG可以无限放大 */
+  max-width: none !important;
+  max-height: none !important;
+  width: auto !important;
+  height: auto !important;
+}
+
+/* 文本矢量渲染 */
+.mermaid-preview-container svg text {
+  text-rendering: geometricPrecision !important;
+  -webkit-font-smoothing: subpixel-antialiased !important;
+  -moz-osx-font-smoothing: auto !important;
+  font-smooth: auto !important;
+  /* 确保文本不被裁剪 */
+  overflow: visible !important;
+}
+
+/* 路径和形状矢量渲染 */
+.mermaid-preview-container svg path,
+.mermaid-preview-container svg line,
+.mermaid-preview-container svg rect,
+.mermaid-preview-container svg circle,
+.mermaid-preview-container svg ellipse,
+.mermaid-preview-container svg polygon,
+.mermaid-preview-container svg polyline {
+  shape-rendering: geometricPrecision !important;
+  vector-effect: non-scaling-stroke !important;
+  /* 确保边框在缩放时保持清晰 */
+  stroke-width: 1px !important;
+}
+
+/* 标记和箭头矢量渲染 */
+.mermaid-preview-container svg marker path,
+.mermaid-preview-container svg defs path {
+  shape-rendering: geometricPrecision !important;
+  vector-effect: non-scaling-stroke !important;
+}
+
+/* 确保所有嵌套元素都以矢量方式渲染 */
+.mermaid-preview-container svg * {
+  shape-rendering: geometricPrecision !important;
+  text-rendering: geometricPrecision !important;
+  image-rendering: optimizeQuality !important;
+}
+
+/* 禁用TransformWrapper可能的像素化 */
+.mermaid-preview-container .react-transform-wrapper,
+.mermaid-preview-container .react-transform-component {
+  /* 禁用硬件加速 */
+  transform: none !important;
+  will-change: auto !important;
+  backface-visibility: visible !important;
+  perspective: none !important;
+  
+  /* 确保容器不影响矢量渲染 */
+  image-rendering: auto !important;
+}
+
+/* 高分辨率设备矢量优化 */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .mermaid-preview-container svg {
+    shape-rendering: geometricPrecision !important;
+    text-rendering: geometricPrecision !important;
+  }
+}

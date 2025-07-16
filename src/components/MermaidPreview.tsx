@@ -1,17 +1,14 @@
 /**
- * Mermaid 图表预览组件
- * 实时渲染 Mermaid 图表并支持导出功能
+ * Mermaid 预览组件
+ * 渲染Mermaid图表的预览
  */
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import mermaid from 'mermaid'
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
 import { Button } from '@/components/ui/button'
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Download, Copy, RefreshCw, ChevronDown, ZoomIn, ZoomOut, RotateCcw, Maximize2, Save } from 'lucide-react'
-import toast, { Toaster } from 'react-hot-toast'
+import { ZoomIn, ZoomOut, RotateCcw, Maximize2, Copy, Download, Check, RefreshCw } from 'lucide-react'
+import { toast } from 'sonner'
+import '../styles/preview.css'
 
 interface MermaidPreviewProps {
   code: string
@@ -20,646 +17,659 @@ interface MermaidPreviewProps {
 
 export default function MermaidPreview({ code, className = '' }: MermaidPreviewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [svgContent, setSvgContent] = useState<string>('')
-  const [showSaveDialog, setShowSaveDialog] = useState(false)
-  const [saveName, setSaveName] = useState('')
-
-  useEffect(() => {
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: 'default',
-      securityLevel: 'loose',
-      fontFamily: 'monospace',
-    })
-  }, [])
-
-  useEffect(() => {
-    if (!code.trim()) {
-      setSvgContent('')
-      setError(null)
-      return
-    }
-
-    // 防抖处理，减少频繁的渲染
-    const timer = setTimeout(() => {
-      renderMermaid()
-    }, 500) // 500ms防抖延迟
-
-    return () => clearTimeout(timer)
-  }, [code])
+  const [isLoading, setIsLoading] = useState(false)
+  const [lastCode, setLastCode] = useState<string>('')
+  const [copied, setCopied] = useState(false)
+  const [renderKey, setRenderKey] = useState(0)
+  const copyTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const renderTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   /**
-   * 渲染 Mermaid 图表
+   * 将SVG转换为PNG
    */
-  const renderMermaid = async () => {
-    if (!containerRef.current) return
-
-    setIsLoading(true)
-    setError(null)
-
-    try {
-      // 清空容器
-      containerRef.current.innerHTML = ''
-      
-      // 生成唯一ID
-      const id = `mermaid-${Date.now()}`
-      
-      // 渲染图表
-      const { svg } = await mermaid.render(id, code)
-      
-      // 将SVG插入容器
-      containerRef.current.innerHTML = svg
-      setSvgContent(svg)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : '渲染失败')
-      containerRef.current.innerHTML = ''
-      setSvgContent('')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  /**
-   * 下载SVG图片
-   */
-  const downloadSVG = () => {
-    if (!svgContent) {
-      toast.error('没有可下载的图表内容')
-      return
-    }
-
-    try {
-      const svgBlob = new Blob([svgContent], { type: 'image/svg+xml' })
-      const url = URL.createObjectURL(svgBlob)
-      const link = document.createElement('a')
-      link.href = url
-      link.download = `mermaid-diagram-${Date.now()}.svg`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(url)
-      toast.success('SVG文件下载成功')
-    } catch (err) {
-      console.error('下载失败:', err)
-      toast.error('SVG下载失败，请重试')
-    }
-  }
-
-  /**
-   * 下载PNG图片
-   */
-  const downloadPNG = async () => {
-    if (!svgContent) {
-      toast.error('没有可下载的图表内容')
-      return
-    }
-
-    const loadingToast = toast.loading('正在生成PNG图片...')
-
-    try {
-      // 获取SVG的实际显示尺寸
-      const svgElement = containerRef.current?.querySelector('svg')
-      if (!svgElement) {
-        toast.error('找不到SVG元素', { id: loadingToast })
-        return
-      }
-
-      // 获取SVG的边界框
-      const bbox = svgElement.getBBox()
-      const width = Math.max(bbox.width, 300)
-      const height = Math.max(bbox.height, 200)
-
-      // 创建Canvas
-      const canvas = document.createElement('canvas')
-      const ctx = canvas.getContext('2d')
-      if (!ctx) {
-        throw new Error('无法创建Canvas上下文')
-      }
-
-      // 使用2倍分辨率提高清晰度
-      const scale = 2
-      canvas.width = Math.round(width * scale)
-      canvas.height = Math.round(height * scale)
-
-      // 使用原始SVG内容，但确保包含正确的尺寸和viewBox
-      let cleanSvg = svgContent
-      
-      // 确保SVG包含正确的viewBox
-      if (!cleanSvg.includes('viewBox=')) {
-        cleanSvg = cleanSvg.replace('<svg', `<svg viewBox="${bbox.x} ${bbox.y} ${bbox.width} ${bbox.height}"`)
-      }
-      
-      // 确保SVG包含xmlns
-      if (!cleanSvg.includes('xmlns=')) {
-        cleanSvg = cleanSvg.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"')
-      }
-      
-      // 移除可能导致问题的外部引用
-      cleanSvg = cleanSvg
-        .replace(/xlink:href="[^"]*"/g, '')
-        .replace(/href="[^"]*"/g, '')
-        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-
-      // 使用Promise包装图片加载
-      const loadImage = (src: string): Promise<HTMLImageElement> => {
-        return new Promise((resolve, reject) => {
-          const timeout = setTimeout(() => {
-            reject(new Error('图片加载超时'))
-          }, 10000) // 10秒超时
-
-          const img = new Image()
-          img.onload = () => {
-            clearTimeout(timeout)
-            resolve(img)
-          }
-          img.onerror = (error) => {
-            clearTimeout(timeout)
-            console.error('图片加载错误:', error)
-            reject(new Error('SVG图片加载失败'))
-          }
-          img.src = src
-        })
-      }
-
-      // 创建data URL
-      const dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(cleanSvg)
-      console.log('尝试加载SVG:', dataUrl.substring(0, 100) + '...')
-      
+  const svgToPng = useCallback((svgElement: SVGElement, scale: number = 2): Promise<string> => {
+    return new Promise((resolve, reject) => {
       try {
-        // 加载图片
-        const img = await loadImage(dataUrl)
-        
-        // 设置白色背景
-        ctx.fillStyle = 'white'
-        ctx.fillRect(0, 0, canvas.width, canvas.height)
-        
-        // 启用图像平滑
-        ctx.imageSmoothingEnabled = true
-        ctx.imageSmoothingQuality = 'high'
-        
-        // 绘制SVG图像
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-        
-        // 转换为PNG并下载
-        canvas.toBlob((blob) => {
-          if (blob) {
-            const pngUrl = URL.createObjectURL(blob)
-            const link = document.createElement('a')
-            link.href = pngUrl
-            link.download = `mermaid-diagram-${Date.now()}.png`
-            document.body.appendChild(link)
-            link.click()
-            document.body.removeChild(link)
-            URL.revokeObjectURL(pngUrl)
-            toast.success('PNG图片下载成功', { id: loadingToast })
-          } else {
-            throw new Error('无法生成PNG文件')
-          }
-        }, 'image/png', 0.9)
-      } catch (imageError) {
-        console.error('PNG下载失败:', imageError)
-        toast.error('PNG下载失败，改为下载SVG', { id: loadingToast })
-        downloadSVG()
-      }
-    } catch (err) {
-      console.error('PNG下载失败:', err)
-      toast.error('PNG下载失败，改为下载SVG', { id: loadingToast })
-      downloadSVG()
-    }
-  }
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+        if (!ctx) {
+          reject(new Error('无法获取canvas上下文'))
+          return
+        }
 
-  /**
-   * 复制PNG图片到剪切板
-   */
-  const copyToClipboard = async () => {
-    if (!svgContent) {
-      toast.error('没有可复制的图表内容')
-      return
-    }
+        // 获取SVG的实际尺寸
+        const svgRect = svgElement.getBoundingClientRect()
+        const svgWidth = svgRect.width || 800
+        const svgHeight = svgRect.height || 600
 
-    // 检查剪切板API是否可用
-    if (!navigator.clipboard) {
-      toast.error('当前浏览器不支持剪切板功能，请使用HTTPS或更新浏览器')
-      return
-    }
+        // 克隆SVG并准备数据
+        const clonedSvg = svgElement.cloneNode(true) as SVGElement
+        clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
+        clonedSvg.setAttribute('width', svgWidth.toString())
+        clonedSvg.setAttribute('height', svgHeight.toString())
 
-    // 检查浏览器是否支持图片复制
-    if (!window.ClipboardItem) {
-      toast.error('当前浏览器不支持图片复制功能')
-      return
-    }
+        // 获取SVG的HTML字符串
+        const svgData = clonedSvg.outerHTML
 
-    const loadingToast = toast.loading('正在复制PNG图片...')
+        // 使用base64编码避免CSP问题
+        const svgBase64 = btoa(unescape(encodeURIComponent(svgData)))
+        const svgDataUrl = `data:image/svg+xml;base64,${svgBase64}`
 
-    try {
-      // 获取SVG的实际显示尺寸
-      const svgElement = containerRef.current?.querySelector('svg')
-      if (!svgElement) {
-        toast.error('找不到SVG元素', { id: loadingToast })
-        return
-      }
-
-      // 获取SVG的边界框
-      const bbox = svgElement.getBBox()
-      const width = Math.max(bbox.width, 300)
-      const height = Math.max(bbox.height, 200)
-
-      // 创建Canvas
-      const canvas = document.createElement('canvas')
-      const ctx = canvas.getContext('2d')
-      if (!ctx) {
-        toast.error('无法创建Canvas上下文', { id: loadingToast })
-        return
-      }
-
-      // 使用2倍分辨率提高清晰度
-      const scale = 2
-      canvas.width = Math.round(width * scale)
-      canvas.height = Math.round(height * scale)
-
-      // 使用原始SVG内容，但确保包含正确的尺寸和viewBox
-      let cleanSvg = svgContent
-      
-      // 确保SVG包含正确的viewBox
-      if (!cleanSvg.includes('viewBox=')) {
-        cleanSvg = cleanSvg.replace('<svg', `<svg viewBox="${bbox.x} ${bbox.y} ${bbox.width} ${bbox.height}"`)
-      }
-      
-      // 确保SVG包含xmlns
-      if (!cleanSvg.includes('xmlns=')) {
-        cleanSvg = cleanSvg.replace('<svg', '<svg xmlns="http://www.w3.org/2000/svg"')
-      }
-      
-      // 移除可能导致问题的外部引用
-      cleanSvg = cleanSvg
-        .replace(/xlink:href="[^"]*"/g, '')
-        .replace(/href="[^"]*"/g, '')
-        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
-
-      // 创建图片并等待加载
-      const img = new Image()
-      
-      const imageLoadPromise = new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => {
-          reject(new Error('图片加载超时'))
-        }, 10000) // 10秒超时
+        const img = new Image()
 
         img.onload = () => {
-          clearTimeout(timeout)
           try {
+            // 设置Canvas尺寸
+            canvas.width = svgWidth * scale
+            canvas.height = svgHeight * scale
+
             // 设置白色背景
             ctx.fillStyle = 'white'
             ctx.fillRect(0, 0, canvas.width, canvas.height)
-            
-            // 启用图像平滑
-            ctx.imageSmoothingEnabled = true
-            ctx.imageSmoothingQuality = 'high'
-            
-            // 绘制SVG图像
+
+            // 绘制SVG图片
             ctx.drawImage(img, 0, 0, canvas.width, canvas.height)
-            
-            resolve()
+
+            // 转换为PNG
+            const pngDataUrl = canvas.toDataURL('image/png', 1.0)
+            resolve(pngDataUrl)
           } catch (error) {
-            clearTimeout(timeout)
-            reject(error)
+            console.error('Canvas绘制失败:', error)
+            reject(new Error('Canvas绘制失败'))
           }
         }
-        
+
         img.onerror = (error) => {
-          clearTimeout(timeout)
-          console.error('图片加载错误:', error)
-          reject(new Error('SVG图片加载失败'))
+          console.error('图片加载失败:', error)
+          reject(new Error('图片加载失败'))
         }
-        
+
         // 设置图片源
-        const dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(cleanSvg)
-        console.log('尝试加载SVG:', dataUrl.substring(0, 100) + '...')
-        img.src = dataUrl
-      })
+        img.src = svgDataUrl
 
-      // 等待图片加载完成
-      await imageLoadPromise
-
-      // 转换为PNG Blob
-      const blob = await new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob((blob) => {
-          if (blob) {
-            resolve(blob)
-          } else {
-            reject(new Error('无法生成PNG文件'))
-          }
-        }, 'image/png', 0.9)
-      })
-
-      // 复制PNG到剪切板
-      await navigator.clipboard.write([
-        new ClipboardItem({ 'image/png': blob })
-      ])
-      
-      toast.success(`PNG图片已复制到剪切板 (${Math.round(width)}×${Math.round(height)})`, { id: loadingToast })
-
-    } catch (error) {
-      console.error('PNG复制失败:', error)
-      toast.error('PNG复制失败，请重试或使用下载功能', { id: loadingToast })
-    }
-  }
+      } catch (error) {
+        console.error('SVG转PNG初始化失败:', error)
+        reject(new Error('SVG转PNG初始化失败'))
+      }
+    })
+  }, [])
 
   /**
-   * 保存代码到Cookie
+   * 复制PNG到剪贴板
    */
-  const saveToStorage = () => {
-    if (!code.trim()) {
-      toast.error('没有代码可以保存')
-      return
-    }
-    
-    if (!saveName.trim()) {
-      toast.error('请输入保存名称')
+  const handleCopyPng = useCallback(async () => {
+    const svgElement = containerRef.current?.querySelector('svg')
+    if (!svgElement) {
+      toast.error('未找到图表')
       return
     }
 
     try {
-      // 获取现有的保存项
-      const existingSaves = JSON.parse(localStorage.getItem('mermaid-saves') || '[]')
-      
-      // 检查是否已存在同名项
-      const existingIndex = existingSaves.findIndex((item: any) => item.name === saveName.trim())
-      
-      const saveItem = {
-        name: saveName.trim(),
-        code: code,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+      const pngUrl = await svgToPng(svgElement)
+
+      // 验证生成的PNG数据
+      if (!pngUrl.startsWith('data:image/png')) {
+        throw new Error('PNG生成失败')
       }
-      
-      if (existingIndex >= 0) {
-        // 更新现有项
-        existingSaves[existingIndex] = {
-          ...existingSaves[existingIndex],
-          code: code,
-          updatedAt: new Date().toISOString()
-        }
-        toast.success(`已更新保存项: ${saveName}`)
-      } else {
-        // 添加新项
-        existingSaves.push(saveItem)
-        toast.success(`已保存: ${saveName}`)
+
+      const response = await fetch(pngUrl)
+      const blob = await response.blob()
+
+      if (blob.type !== 'image/png') {
+        throw new Error('PNG格式错误')
       }
-      
-      // 保存到localStorage（比cookie更适合存储较大数据）
-      localStorage.setItem('mermaid-saves', JSON.stringify(existingSaves))
-      
-      // 触发自定义事件通知其他组件更新
-      window.dispatchEvent(new CustomEvent('mermaid-save-updated'))
-      
-      // 关闭对话框并清空输入
-      setShowSaveDialog(false)
-      setSaveName('')
-      
+
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          'image/png': blob
+        })
+      ])
+
+      // 显示成功状态 - 设置图标为绿色✓
+      setCopied(true)
+      if (copyTimerRef.current) {
+        clearTimeout(copyTimerRef.current)
+      }
+      copyTimerRef.current = setTimeout(() => {
+        setCopied(false)
+      }, 3000)
+
     } catch (error) {
-      console.error('保存失败:', error)
-      toast.error('保存失败，请重试')
+      console.error('复制PNG失败:', error)
+
+      // 降级方案：复制SVG字符串
+      try {
+        const svgData = new XMLSerializer().serializeToString(svgElement)
+        await navigator.clipboard.writeText(svgData)
+
+        // 显示成功状态 - 设置图标为绿色✓
+        setCopied(true)
+        if (copyTimerRef.current) {
+          clearTimeout(copyTimerRef.current)
+        }
+        copyTimerRef.current = setTimeout(() => {
+          setCopied(false)
+        }, 3000)
+
+      } catch (fallbackError) {
+        console.error('复制失败:', fallbackError)
+      }
     }
-  }
+  }, [svgToPng])
 
   /**
-   * 处理保存对话框的打开
+   * 导出PNG
    */
-  const handleSaveClick = () => {
-    if (!code.trim()) {
-      toast.error('没有代码可以保存')
+  const handleExportPng = useCallback(async () => {
+    const svgElement = containerRef.current?.querySelector('svg')
+    if (!svgElement) {
+      toast.error('未找到图表')
       return
     }
-    
-    // 生成默认名称
-    const now = new Date()
-    const defaultName = `图表_${now.getMonth() + 1}${now.getDate()}_${now.getHours()}${now.getMinutes()}`
-    setSaveName(defaultName)
-    setShowSaveDialog(true)
-  }
+
+    try {
+      const pngUrl = await svgToPng(svgElement)
+
+      // 验证生成的PNG数据
+      if (!pngUrl.startsWith('data:image/png')) {
+        throw new Error('PNG生成失败')
+      }
+
+      const downloadLink = document.createElement('a')
+      downloadLink.href = pngUrl
+      downloadLink.download = 'mermaid-diagram.png'
+      downloadLink.click()
+    } catch (error) {
+      console.error('导出PNG失败:', error)
+
+      // 降级方案：导出SVG
+      try {
+        const svgData = new XMLSerializer().serializeToString(svgElement)
+        const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' })
+        const svgUrl = URL.createObjectURL(svgBlob)
+        const downloadLink = document.createElement('a')
+        downloadLink.href = svgUrl
+        downloadLink.download = 'mermaid-diagram.svg'
+        downloadLink.click()
+        URL.revokeObjectURL(svgUrl)
+      } catch (fallbackError) {
+        console.error('导出失败:', fallbackError)
+      }
+    }
+  }, [svgToPng])
+
+  /**
+   * 强制重新渲染
+   */
+  const handleForceRefresh = useCallback(() => {
+    setError(null)
+    setLastCode('')  // 清空lastCode确保重新渲染
+    setRenderKey(prev => prev + 1)  // 强制更新renderKey
+  }, [])
+
+  useEffect(() => {
+    try {
+      // 完整的Mermaid初始化配置
+      mermaid.initialize({
+        startOnLoad: false,
+        theme: 'default',
+        securityLevel: 'loose',
+        deterministicIds: false,
+        fontFamily: 'Arial, Helvetica, sans-serif',
+        fontSize: 16,
+        flowchart: {
+          useMaxWidth: false,
+          htmlLabels: true,
+          curve: 'basis'
+        },
+        sequence: {
+          useMaxWidth: false,
+          mirrorActors: true,
+          rightAngles: false,
+          showSequenceNumbers: false
+        },
+        gantt: {
+          useMaxWidth: false,
+          // fontFamily: 'Arial, Helvetica, sans-serif',
+          fontSize: 14,
+          // fontWeight: 'normal',
+          gridLineStartPadding: 350,
+          leftPadding: 40,
+          rightPadding: 40,
+          topPadding: 50,
+          // bottomPadding: 50
+        },
+        state: {
+          useMaxWidth: false,
+          // stateFillColor: '#f9f9f9',
+          // startStateFillColor: '#0f0f0f',
+          // endStateFillColor: '#0f0f0f',
+          // stateStrokeColor: '#333',
+          // activeStateFillColor: '#e6e6e6',
+          // activeStateStrokeColor: '#333'
+        },
+        class: {
+          useMaxWidth: false,
+          // fontFamily: 'Arial, Helvetica, sans-serif',
+          // fontSize: 14,
+          // fontWeight: 'normal'
+        },
+        // classDiagram: {
+        //   useMaxWidth: false,
+        //   fontFamily: 'Arial, Helvetica, sans-serif',
+        //   fontSize: 14,
+        //   fontWeight: 'normal'
+        // },
+        pie: {
+          useMaxWidth: false,
+          // fontFamily: 'Arial, Helvetica, sans-serif',
+          // fontSize: 14,
+          // fontWeight: 'normal'
+        },
+        mindmap: {
+          useMaxWidth: false,
+          // fontFamily: 'Arial, Helvetica, sans-serif',
+          // fontSize: 14,
+          // fontWeight: 'normal'
+        }
+      })
+    } catch (error) {
+      console.error('Mermaid初始化失败:', error)
+      setError('Mermaid初始化失败')
+    }
+
+    // 重置状态
+    setError(null)
+    setIsLoading(false)
+    setLastCode('')
+  }, [])
+
+  // 清理定时器
+  useEffect(() => {
+    return () => {
+      if (copyTimerRef.current) {
+        clearTimeout(copyTimerRef.current)
+      }
+      if (renderTimeoutRef.current) {
+        clearTimeout(renderTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!code || !containerRef.current) return
+
+    // 只有在代码没有变化且没有错误时才跳过渲染
+    if (code === lastCode && !error) {
+      return
+    }
+
+    // 如果有错误状态，先清除错误以便重新渲染
+    if (error) {
+      setError(null)
+    }
+
+    // 清理之前的定时器
+    if (renderTimeoutRef.current) {
+      clearTimeout(renderTimeoutRef.current)
+    }
+
+    const renderDiagram = async () => {
+      setIsLoading(true)
+      setError(null)
+
+      // 更新renderKey以强制重新渲染
+      setRenderKey(prev => prev + 1)
+
+      try {
+        // 清空容器
+        const container = containerRef.current
+        if (container) {
+          container.innerHTML = ''
+        }
+
+        // 生成唯一的图表ID
+        const chartId = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+
+        // 清理可能存在的旧图表
+        const existingElement = document.getElementById(chartId)
+        if (existingElement) {
+          existingElement.remove()
+        }
+
+        // 完整的mermaid初始化配置
+        try {
+          mermaid.initialize({
+            startOnLoad: false,
+            theme: 'default',
+            securityLevel: 'loose',
+            deterministicIds: false,
+            fontFamily: 'Arial, Helvetica, sans-serif',
+            fontSize: 16,
+            flowchart: {
+              useMaxWidth: false,
+              htmlLabels: true,
+              curve: 'basis'
+            },
+            sequence: {
+              useMaxWidth: false,
+              mirrorActors: true,
+              rightAngles: false,
+              showSequenceNumbers: false
+            },
+            gantt: {
+              useMaxWidth: false,
+              // fontFamily: 'Arial, Helvetica, sans-serif',
+              fontSize: 14,
+              // fontWeight: 'normal',
+              gridLineStartPadding: 350,
+              leftPadding: 40,
+              rightPadding: 40,
+              topPadding: 50,
+              // bottomPadding: 50
+            },
+            state: {
+              useMaxWidth: false,
+              // stateFillColor: '#f9f9f9',
+              // startStateFillColor: '#0f0f0f',
+              // endStateFillColor: '#0f0f0f',
+              // stateStrokeColor: '#333',
+              // activeStateFillColor: '#e6e6e6',
+              // activeStateStrokeColor: '#333'
+            },
+            class: {
+              useMaxWidth: false,
+              // fontFamily: 'Arial, Helvetica, sans-serif',
+              // fontSize: 14,
+              // fontWeight: 'normal'
+            },
+            // classDiagram: {
+            //   useMaxWidth: false,
+            //   fontFamily: 'Arial, Helvetica, sans-serif',
+            //   fontSize: 14,
+            //   fontWeight: 'normal'
+            // },
+            pie: {
+              useMaxWidth: false,
+              // fontFamily: 'Arial, Helvetica, sans-serif',
+              // fontSize: 14,
+              // fontWeight: 'normal'
+            },
+            mindmap: {
+              useMaxWidth: false,
+              // fontFamily: 'Arial, Helvetica, sans-serif',
+              // fontSize: 14,
+              // fontWeight: 'normal'
+            }
+          })
+        } catch (initError) {
+          console.error('Mermaid重新初始化失败:', initError)
+        }
+
+        // 检测图表类型并进行特殊处理
+        const diagramType = code.trim().split('\n')[0].toLowerCase()
+
+        // 先尝试解析代码
+        let canRender = true
+        try {
+          await mermaid.parse(code)
+        } catch (parseError) {
+          console.warn('Mermaid解析警告:', parseError)
+          // 对于某些严重的解析错误，跳过渲染
+          if (typeof parseError === 'object' && parseError !== null && 'message' in parseError && typeof parseError.message === 'string' && (parseError.message.includes('null') || parseError.message.includes('undefined'))) {
+            canRender = false
+            throw new Error('图表代码解析失败: ' + parseError.message)
+          }
+        }
+
+        if (!canRender) {
+          throw new Error('图表无法渲染')
+        }
+
+        // 渲染图表
+        const { svg } = await mermaid.render(chartId, code)
+
+        if (container && svg) {
+          container.innerHTML = svg
+
+          // 只有渲染成功后才更新lastCode
+          setLastCode(code)
+
+          // 优化SVG为真正的矢量渲染
+          const svgElement = container.querySelector('svg')
+          if (svgElement) {
+            // 确保SVG保持矢量特性
+            svgElement.style.maxWidth = 'none'
+            svgElement.style.maxHeight = 'none'
+            svgElement.style.width = 'auto'
+            svgElement.style.height = 'auto'
+            svgElement.style.display = 'block'
+            svgElement.style.margin = '0 auto'
+
+            // 核心矢量渲染设置
+            svgElement.style.shapeRendering = 'geometricPrecision'
+            svgElement.style.textRendering = 'geometricPrecision'
+            svgElement.style.imageRendering = 'optimizeQuality'
+            svgElement.style.vectorEffect = 'non-scaling-stroke'
+
+            // 禁用所有可能导致像素化的属性
+            svgElement.style.transform = 'none'
+            svgElement.style.willChange = 'auto'
+            svgElement.style.backfaceVisibility = 'visible'
+            svgElement.style.perspective = 'none'
+            svgElement.style.pointerEvents = 'none'
+
+            // 确保字体以矢量方式渲染
+            // svgElement.style.WebkitFontSmoothing = 'subpixel-antialiased'
+            // svgElement.style.MozOsxFontSmoothing = 'auto'
+
+            // 确保SVG有正确的viewBox属性
+            if (!svgElement.getAttribute('viewBox')) {
+              const bbox = svgElement.getBBox()
+              svgElement.setAttribute('viewBox', `${bbox.x} ${bbox.y} ${bbox.width} ${bbox.height}`)
+            }
+
+            // 确保preserveAspectRatio设置正确
+            svgElement.setAttribute('preserveAspectRatio', 'xMidYMid meet')
+          }
+        }
+      } catch (err) {
+        console.error('渲染Mermaid图表失败:', err)
+        setError(err instanceof Error ? err.message : '渲染失败')
+
+        // 清空容器以确保不显示旧内容
+        const container = containerRef.current
+        if (container) {
+          container.innerHTML = ''
+        }
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    // 使用短延时确保DOM更新
+    renderTimeoutRef.current = setTimeout(renderDiagram, 50)
+
+    return () => {
+      if (renderTimeoutRef.current) {
+        clearTimeout(renderTimeoutRef.current)
+      }
+    }
+  }, [code, lastCode, error])
 
   return (
     <div className={`flex flex-col h-full ${className}`}>
-      <Toaster 
-        position="top-right"
-        toastOptions={{
-          duration: 3000,
-          style: {
-            background: '#fff',
-            color: '#333',
-            border: '1px solid #e5e7eb',
-            borderRadius: '8px',
-            fontSize: '14px',
-          },
-        }}
-      />
-      
       <div className="flex-shrink-0 px-4 py-2 bg-gray-50 border-b border-gray-200">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium text-gray-600">预览</span>
-          <div className="flex items-center space-x-1">
+          <span className="text-xs font-medium text-gray-600">图表预览</span>
+          <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="sm"
-              onClick={renderMermaid}
-              disabled={isLoading || !code.trim()}
-              className="h-6 w-6 p-0 hover:bg-gray-100"
-              title="重新渲染"
+              onClick={handleForceRefresh}
+              className="h-6 px-2 text-xs flex items-center gap-1"
+              title="强制重新渲染图表"
             >
-              <RefreshCw className={`h-3 w-3 ${isLoading ? 'animate-spin' : ''}`} />
+              <RefreshCw className="w-3 h-3" />
+              刷新
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleSaveClick}
-              disabled={!code.trim()}
-              className="h-6 w-6 p-0 hover:bg-gray-100"
-              title="保存代码"
+              onClick={handleCopyPng}
+              className="h-6 px-2 text-xs flex items-center gap-1"
             >
-              <Save className="h-3 w-3" />
+              {copied ? (
+                <Check className="w-3 h-3 text-green-600" />
+              ) : (
+                <Copy className="w-3 h-3" />
+              )}
+              复制PNG
             </Button>
             <Button
               variant="ghost"
               size="sm"
-              onClick={copyToClipboard}
-              disabled={!svgContent}
-              className="h-6 w-6 p-0 hover:bg-gray-100"
-              title="复制PNG图片到剪切板"
+              onClick={handleExportPng}
+              className="h-6 px-2 text-xs flex items-center gap-1"
             >
-              <Copy className="h-3 w-3" />
+              <Download className="w-3 h-3" />
+              导出PNG
             </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  disabled={!svgContent}
-                  className="h-6 w-6 p-0 hover:bg-gray-100"
-                  title="下载"
-                >
-                  <Download className="h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent className="bg-white border border-gray-200">
-                <DropdownMenuItem onClick={downloadSVG} className="hover:bg-gray-50 text-xs">
-                  下载 SVG
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={downloadPNG} className="hover:bg-gray-50 text-xs">
-                  下载 PNG (高质量)
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           </div>
         </div>
       </div>
-      
-      <div className="flex-1 relative bg-white overflow-hidden">
-        <TransformWrapper
-          initialScale={1}
-          minScale={0.1}
-          maxScale={10}
-          centerOnInit={false}
-          centerZoomedOut={false}
-          disablePadding={true}
-          limitToBounds={false}
-          wheel={{ step: 0.1 }}
-          pinch={{ step: 5 }}
-          doubleClick={{ disabled: false, mode: 'reset' }}
-        >
-          {({ zoomIn, zoomOut, resetTransform, centerView }) => (
-            <>
-              {/* 缩放控制工具栏 */}
-              <div className="absolute top-2 right-2 z-10 flex flex-col bg-white border border-gray-200 p-1">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => zoomIn(0.5)}
-                  className="h-8 w-8 p-0 hover:bg-gray-100"
-                  disabled={!svgContent}
-                >
-                  <ZoomIn className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => zoomOut(0.5)}
-                  className="h-8 w-8 p-0 hover:bg-gray-100"
-                  disabled={!svgContent}
-                >
-                  <ZoomOut className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => resetTransform()}
-                  className="h-8 w-8 p-0 hover:bg-gray-100"
-                  disabled={!svgContent}
-                >
-                  <RotateCcw className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => centerView()}
-                  className="h-8 w-8 p-0 hover:bg-gray-100"
-                  disabled={!svgContent}
-                >
-                  <Maximize2 className="h-4 w-4" />
-                </Button>
+
+      <div className="flex-1 relative overflow-hidden bg-white mermaid-preview-container">
+        {isLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          </div>
+        )}
+
+        {error && (
+          <div className="absolute inset-0 flex items-center justify-center bg-red-50">
+            <div className="text-center max-w-md p-4">
+              <div className="text-red-600 text-sm font-medium mb-2">渲染错误</div>
+              <div className="text-red-500 text-xs mb-4">{error}</div>
+              <div className="text-gray-600 text-xs">
+                请检查Mermaid语法是否正确，或尝试使用示例模板
               </div>
-
-              <TransformComponent
-                wrapperClass="w-full h-full"
-                contentClass="w-full h-full flex items-center justify-center"
-              >
-                <div className="w-full h-full relative">
-                  {isLoading && (
-                    <div className="flex items-center justify-center h-full">
-                      <div className="flex items-center space-x-2 text-gray-600 bg-white border border-gray-200 px-4 py-2">
-                        <RefreshCw className="h-4 w-4 animate-spin text-blue-500" />
-                        <span className="text-sm font-medium">正在渲染图表...</span>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {error && (
-                    <div className="flex items-center justify-center h-full">
-                      <div className="text-center text-red-600 p-6 border border-red-200 bg-red-50 max-w-md">
-                        <svg className="w-8 h-8 mx-auto mb-3 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        <p className="font-medium mb-1">渲染错误</p>
-                        <p className="text-xs text-red-500">{error}</p>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {!isLoading && !error && !svgContent && (
-                    <div className="flex items-center justify-center h-full">
-                      <div className="text-center text-gray-500 bg-gray-50 p-8">
-                        <svg className="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        <p className="font-medium mb-1">开始创建图表</p>
-                        <p className="text-xs">请在左侧编辑器中输入 Mermaid 代码</p>
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div 
-                    ref={containerRef}
-                    className="flex items-center justify-center min-h-full"
-                  />
-                </div>
-              </TransformComponent>
-            </>
-          )}
-        </TransformWrapper>
-      </div>
-
-      {/* 保存对话框 */}
-      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>保存 Mermaid 图表</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="save-name">名称</Label>
-              <Input
-                id="save-name"
-                value={saveName}
-                onChange={(e) => setSaveName(e.target.value)}
-                placeholder="请输入保存名称"
-                className="mt-1"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    saveToStorage()
-                  }
-                }}
-              />
-            </div>
-            <div className="flex justify-end space-x-2">
-              <Button
-                variant="outline"
-                onClick={() => setShowSaveDialog(false)}
-                className="text-sm"
-              >
-                取消
-              </Button>
-              <Button
-                onClick={saveToStorage}
-                disabled={!saveName.trim()}
-                className="text-sm"
-              >
-                保存
-              </Button>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        )}
+
+        {!isLoading && !error && (
+          <TransformWrapper
+            initialScale={1}
+            minScale={0.1}
+            maxScale={3}
+            centerOnInit={true}
+            wheel={{
+              step: 0.1,
+              activationKeys: [],
+              wheelDisabled: false
+            }}
+            doubleClick={{
+              disabled: false,
+              step: 0.7
+            }}
+            limitToBounds={false}
+            smooth={false}
+            velocityAnimation={{
+              sensitivity: 1,
+              animationTime: 200,
+              animationType: "easeOut"
+            }}
+            alignmentAnimation={{
+              disabled: false,
+              animationTime: 200,
+              animationType: "easeOut"
+            }}
+          >
+            {({ zoomIn, zoomOut, resetTransform, centerView }) => (
+              <>
+                {/* 控制工具栏 */}
+                <div className="absolute top-4 right-4 z-10 flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => zoomIn()}
+                    className="bg-white/90 backdrop-blur-sm"
+                  >
+                    <ZoomIn className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => zoomOut()}
+                    className="bg-white/90 backdrop-blur-sm"
+                  >
+                    <ZoomOut className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => resetTransform()}
+                    className="bg-white/90 backdrop-blur-sm"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => centerView()}
+                    className="bg-white/90 backdrop-blur-sm"
+                  >
+                    <Maximize2 className="w-4 h-4" />
+                  </Button>
+                </div>
+
+                {/* 图表内容 */}
+                <TransformComponent
+                  wrapperClass="!w-full !h-full"
+                  contentClass="!w-full !h-full flex items-center justify-center"
+                  wrapperStyle={{
+                    width: '100%',
+                    height: '100%',
+                    cursor: 'grab',
+                    imageRendering: 'auto',
+                    transform: 'none',
+                    willChange: 'auto',
+                    backfaceVisibility: 'visible'
+                  }}
+                  contentStyle={{
+                    // imageRendering: 'optimizeQuality',
+                    WebkitFontSmoothing: 'subpixel-antialiased',
+                    MozOsxFontSmoothing: 'auto',
+                    transform: 'none',
+                    willChange: 'auto',
+                    backfaceVisibility: 'visible'
+                  }}
+                >
+                  <div
+                    ref={containerRef}
+                    className="flex items-center justify-center p-4 min-h-[200px]"
+                    style={{
+                      userSelect: 'none',
+                      WebkitUserSelect: 'none',
+                      MozUserSelect: 'none',
+                      msUserSelect: 'none',
+                      // imageRendering: 'optimizeQuality',
+                      WebkitFontSmoothing: 'subpixel-antialiased',
+                      MozOsxFontSmoothing: 'auto',
+                      transform: 'none',
+                      willChange: 'auto',
+                      backfaceVisibility: 'visible',
+                      overflow: 'visible'
+                    }}
+                  />
+                </TransformComponent>
+              </>
+            )}
+          </TransformWrapper>
+        )}
+      </div>
     </div>
   )
 }

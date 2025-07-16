@@ -1,126 +1,277 @@
 /**
- * Mermaid 编辑器主页面
- * 集成代码编辑器、实时预览和模板选择功能
+ * 首页组件
+ * Mermaid在线编辑器的主界面
  */
 import { useState, useCallback } from 'react'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels'
-import MermaidEditor from '@/components/MermaidEditor'
-import MermaidPreview from '@/components/MermaidPreview'
-import ExampleTemplates from '@/components/ExampleTemplates'
-import SavedDiagrams from '@/components/SavedDiagrams'
+import MermaidEditor from '../components/MermaidEditor'
+import MermaidPreview from '../components/MermaidPreview'
+import ExampleTemplates from '../components/ExampleTemplates'
+import SavedDiagrams from '../components/SavedDiagrams'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerTrigger, DrawerClose } from '@/components/ui/drawer'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable'
+import { Save, FileText, Palette, Code, BookOpen, X } from 'lucide-react'
+import '../styles/editor.css'
+
+interface SavedDiagram {
+  id: string
+  name: string
+  description: string
+  code: string
+  category: string
+  createdAt: string
+  updatedAt: string
+}
 
 export default function Home() {
-  const [mermaidCode, setMermaidCode] = useState(`graph TD
-    A[开始] --> B{判断条件}
-    B -->|是| C[执行操作A]
-    B -->|否| D[执行操作B]
-    C --> E[结束]
-    D --> E`)
+  const [mermaidCode, setMermaidCode] = useState(`flowchart TD
+    A[开始] --> B{是否登录?}
+    B -->|是| C[显示主页]
+    B -->|否| D[显示登录页]
+    C --> E[用户操作]
+    D --> F[用户登录]
+    F --> C
+    E --> G[结束]`)
+
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false)
+  const [saveName, setSaveName] = useState('')
+  const [saveDescription, setSaveDescription] = useState('')
+  const [isTemplateDrawerOpen, setIsTemplateDrawerOpen] = useState(false)
+  const [isSavedDrawerOpen, setIsSavedDrawerOpen] = useState(false)
 
   /**
-   * 处理模板选择，使用useCallback优化性能
+   * 处理代码变化
    */
-  const handleTemplateSelect = useCallback((code: string) => {
+  const handleCodeChange = useCallback((newCode: string) => {
+    setMermaidCode(newCode)
+  }, [])
+
+  /**
+   * 处理选择模板
+   */
+  const handleSelectTemplate = useCallback((code: string) => {
     setMermaidCode(code)
   }, [])
 
   /**
-   * 处理代码变更，使用useCallback优化性能
+   * 处理选择保存的图表
    */
-  const handleCodeChange = useCallback((code: string) => {
+  const handleSelectDiagram = useCallback((code: string) => {
     setMermaidCode(code)
   }, [])
+
+  /**
+   * 保存图表
+   */
+  const handleSaveDiagram = useCallback(() => {
+    if (!saveName.trim()) {
+      return
+    }
+
+    const savedDiagrams = JSON.parse(localStorage.getItem('mermaid-saved-diagrams') || '[]')
+    
+    const newDiagram: SavedDiagram = {
+      id: Date.now().toString(),
+      name: saveName.trim(),
+      description: saveDescription.trim(),
+      code: mermaidCode,
+      category: getCategory(mermaidCode),
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
+    }
+
+    savedDiagrams.push(newDiagram)
+    localStorage.setItem('mermaid-saved-diagrams', JSON.stringify(savedDiagrams))
+    
+    setIsSaveDialogOpen(false)
+    setSaveName('')
+    setSaveDescription('')
+  }, [mermaidCode, saveName, saveDescription])
+
+  /**
+   * 获取图表类型
+   */
+  const getCategory = (code: string): string => {
+    const firstLine = code.trim().split('\n')[0].toLowerCase()
+    if (firstLine.includes('graph') || firstLine.includes('flowchart')) return 'flowchart'
+    if (firstLine.includes('sequence')) return 'sequence'
+    if (firstLine.includes('class')) return 'class'
+    if (firstLine.includes('state')) return 'state'
+    if (firstLine.includes('gantt')) return 'gantt'
+    if (firstLine.includes('pie')) return 'pie'
+    if (firstLine.includes('mindmap')) return 'mindmap'
+    return 'other'
+  }
+
+
 
   return (
-    <div className="h-screen bg-white flex flex-col">
-      {/* 头部标题 */}
-      <header className="flex-shrink-0 bg-white border-b border-gray-200">
-        <div className="px-6 py-4">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-blue-500 flex items-center justify-center">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
+    <div className="h-screen bg-gray-50 flex flex-col">
+      {/* 顶部导航栏 */}
+      <header className="bg-white shadow-sm border-b border-gray-200 flex-shrink-0">
+        <div className="px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <FileText className="w-8 h-8 text-blue-600 mr-3" />
+              <h1 className="text-2xl font-bold text-gray-900">Mermaid 在线编辑器</h1>
             </div>
-            <div>
-              <h1 className="text-xl font-semibold text-gray-900">
-                Mermaid 在线编辑器
-              </h1>
+            <div className="flex items-center space-x-4">
+              <Drawer open={isTemplateDrawerOpen} onOpenChange={setIsTemplateDrawerOpen} direction="left">
+                <DrawerTrigger asChild>
+                  <Button variant="outline" size="sm" className="flex items-center gap-2">
+                    <BookOpen className="w-4 h-4" />
+                    示例模板
+                  </Button>
+                </DrawerTrigger>
+                <DrawerContent className="h-screen w-[640px] fixed left-0 top-0 border-r flex flex-col">
+                  <DrawerHeader className="border-b">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <DrawerTitle>示例模板</DrawerTitle>
+                        <DrawerDescription>选择一个模板快速开始</DrawerDescription>
+                      </div>
+                      <DrawerClose asChild>
+                        <Button variant="outline" size="sm">
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </DrawerClose>
+                    </div>
+                  </DrawerHeader>
+                  <div className="flex-1 overflow-y-auto">
+                    <ExampleTemplates onSelectTemplate={(code) => {
+                      handleSelectTemplate(code)
+                      setIsTemplateDrawerOpen(false)
+                    }} />
+                  </div>
+                </DrawerContent>
+              </Drawer>
+
+              <Drawer open={isSavedDrawerOpen} onOpenChange={setIsSavedDrawerOpen} direction="left">
+                <DrawerTrigger asChild>
+                  <Button variant="outline" size="sm" className="flex items-center gap-2">
+                    <Save className="w-4 h-4" />
+                    我的保存
+                  </Button>
+                </DrawerTrigger>
+                <DrawerContent className="h-screen w-[640px] fixed left-0 top-0 border-r flex flex-col">
+                  <DrawerHeader className="border-b">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <DrawerTitle>我的保存</DrawerTitle>
+                        <DrawerDescription>管理您保存的图表</DrawerDescription>
+                      </div>
+                      <DrawerClose asChild>
+                        <Button variant="outline" size="sm">
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </DrawerClose>
+                    </div>
+                  </DrawerHeader>
+                  <div className="flex-1 overflow-y-auto">
+                    <SavedDiagrams onSelectDiagram={(code) => {
+                      handleSelectDiagram(code)
+                      setIsSavedDrawerOpen(false)
+                    }} />
+                  </div>
+                </DrawerContent>
+              </Drawer>
+
+
+              <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" className="flex items-center gap-2">
+                    <Save className="w-4 h-4" />
+                    保存图表
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>保存图表</DialogTitle>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label htmlFor="name">图表名称</Label>
+                      <Input
+                        id="name"
+                        value={saveName}
+                        onChange={(e) => setSaveName(e.target.value)}
+                        placeholder="请输入图表名称"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="description">描述（可选）</Label>
+                      <Textarea
+                        id="description"
+                        value={saveDescription}
+                        onChange={(e) => setSaveDescription(e.target.value)}
+                        placeholder="请输入图表描述"
+                        rows={3}
+                      />
+                    </div>
+                    <div className="flex justify-end space-x-2">
+                      <Button variant="outline" onClick={() => setIsSaveDialogOpen(false)}>
+                        取消
+                      </Button>
+                      <Button onClick={handleSaveDiagram}>
+                        保存
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         </div>
       </header>
 
-      {/* 主要内容区域 */}
-      <div className="flex-1 overflow-hidden">
-        <PanelGroup direction="horizontal" className="h-full">
-          {/* 左侧编辑区域 */}
-          <Panel defaultSize={30} minSize={20} maxSize={80}>
-            <div className="h-full bg-white border-r border-gray-200 overflow-hidden">
-              <Tabs defaultValue="editor" className="h-full flex flex-col">
-                <div className="flex-shrink-0 border-b border-gray-200">
-                  <TabsList className="grid w-full grid-cols-3 bg-transparent border-0 rounded-none h-auto p-0">
-                    <TabsTrigger 
-                      value="editor" 
-                      className="data-[state=active]:border-b-2 data-[state=active]:border-blue-500 data-[state=active]:bg-transparent bg-transparent text-sm py-3 px-4 rounded-none border-r border-gray-200 hover:bg-gray-50"
-                    >
-                      <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
-                      </svg>
-                      代码
-                    </TabsTrigger>
-                    <TabsTrigger 
-                      value="templates"
-                      className="data-[state=active]:border-b-2 data-[state=active]:border-blue-500 data-[state=active]:bg-transparent bg-transparent text-sm py-3 px-4 rounded-none border-r border-gray-200 hover:bg-gray-50"
-                    >
-                      <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                      </svg>
-                      模板
-                    </TabsTrigger>
-                    <TabsTrigger 
-                      value="saved"
-                      className="data-[state=active]:border-b-2 data-[state=active]:border-blue-500 data-[state=active]:bg-transparent bg-transparent text-sm py-3 px-4 rounded-none hover:bg-gray-50"
-                    >
-                      <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8" />
-                      </svg>
-                      我的保存
-                    </TabsTrigger>
-                  </TabsList>
-                </div>
-                
-                <TabsContent value="editor" className="flex-1 mt-0 overflow-hidden">
-                  <MermaidEditor
-                    value={mermaidCode}
-                    onChange={handleCodeChange}
-                    className="h-full"
-                  />
-                </TabsContent>
-                
-                <TabsContent value="templates" className="flex-1 mt-0 overflow-auto">
-                  <ExampleTemplates onSelectTemplate={handleTemplateSelect} />
-                </TabsContent>
-                
-                <TabsContent value="saved" className="flex-1 mt-0 overflow-auto">
-                  <SavedDiagrams onSelectDiagram={handleTemplateSelect} />
-                </TabsContent>
-              </Tabs>
-            </div>
-          </Panel>
+      {/* 主内容区域 */}
+      <main className="flex-1 overflow-hidden">
+        <ResizablePanelGroup direction="horizontal" className="h-full">
+          {/* 左侧编辑器 */}
+          <ResizablePanel defaultSize={20} minSize={20}>
+            <Card className="h-full border-0 rounded-none">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2">
+                  <Code className="w-5 h-5" />
+                  代码编辑器
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="h-[calc(100%-5rem)]">
+                <MermaidEditor
+                  value={mermaidCode}
+                  onChange={handleCodeChange}
+                  className="h-full"
+                />
+              </CardContent>
+            </Card>
+          </ResizablePanel>
 
-          {/* 可拖拽的分割线 */}
-          <PanelResizeHandle className="w-1 bg-gray-200 hover:bg-gray-300 transition-colors duration-200 cursor-col-resize panel-resize-handle" />
+          <ResizableHandle withHandle />
 
-          {/* 右侧预览区域 */}
-          <Panel defaultSize={70} minSize={20} maxSize={80}>
-            <div className="h-full bg-white overflow-hidden">
-              <MermaidPreview code={mermaidCode} />
-            </div>
-          </Panel>
-        </PanelGroup>
-      </div>
+          {/* 右侧预览区 */}
+          <ResizablePanel defaultSize={80} minSize={30}>
+            <Card className="h-full border-0 rounded-none">
+              <CardHeader className="pb-4">
+                <CardTitle className="flex items-center gap-2">
+                  <Palette className="w-5 h-5" />
+                  预览
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="h-[calc(100%-5rem)]">
+                <MermaidPreview
+                  code={mermaidCode}
+                  className="h-full"
+                />
+              </CardContent>
+            </Card>
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      </main>
     </div>
   )
 }

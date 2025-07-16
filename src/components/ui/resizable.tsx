@@ -1,5 +1,8 @@
-"use client"
-
+/**
+ * 可调整大小的面板组件
+ * 基于react-resizable-panels实现
+ */
+import * as React from "react"
 import { GripVertical } from "lucide-react"
 import * as ResizablePrimitive from "react-resizable-panels"
 

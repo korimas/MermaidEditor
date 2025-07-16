@@ -1,0 +1,34 @@
+# Mermaider - 在线Mermaid图表编辑器
+# 搜索引擎爬虫指引文件
+
+User-agent: *
+Allow: /
+
+# 允许所有搜索引擎访问
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: Slurp
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: Baiduspider
+Allow: /
+
+# 禁止访问的目录
+Disallow: /dist/
+Disallow: /node_modules/
+Disallow: /src/
+Disallow: /.git/
+Disallow: /scripts/
+
+# 网站地图位置
+Sitemap: https://mermaider.online/sitemap.xml
+
+# 爬取延迟（秒）
+Crawl-delay: 1

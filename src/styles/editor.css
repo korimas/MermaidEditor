@@ -1,0 +1,67 @@
+/* 确保编辑器容器正确处理滚动 */
+.editor-container {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* 确保文本输入框和高亮层完全对齐 */
+.editor-textarea {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.highlight-layer {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* 确保textarea滚动条正常显示 */
+.editor-textarea::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.editor-textarea::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.editor-textarea::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.editor-textarea::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* 隐藏语法高亮层的滚动条 */
+.syntax-highlight-layer::-webkit-scrollbar {
+  display: none;
+}
+
+.syntax-highlight-layer {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* 隐藏行号区域的滚动条 */
+.line-numbers::-webkit-scrollbar {
+  display: none;
+}
+
+.line-numbers {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}

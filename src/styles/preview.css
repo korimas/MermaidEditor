@@ -1,0 +1,72 @@
+/* Mermaid预览矢量优化 */
+.mermaid-preview-container {
+  /* 禁用所有可能导致像素化的属性 */
+  will-change: auto;
+  transform: none;
+  backface-visibility: visible;
+  -webkit-backface-visibility: visible;
+  -moz-backface-visibility: visible;
+  -ms-backface-visibility: visible;
+  perspective: none;
+  overflow: visible;
+}
+
+.mermaid-preview-container svg {
+  /* 确保SVG以矢量方式渲染 */
+  will-change: auto;
+  transform: none;
+  backface-visibility: visible;
+  -webkit-backface-visibility: visible;
+  pointer-events: none;
+  /* 矢量渲染优化 */
+  shape-rendering: geometricPrecision;
+  text-rendering: geometricPrecision;
+  image-rendering: optimizeQuality;
+  vector-effect: non-scaling-stroke;
+}
+
+.mermaid-preview-container .react-transform-wrapper {
+  /* 禁用TransformWrapper的硬件加速 */
+  will-change: auto;
+  transform: none;
+  backface-visibility: visible;
+  -webkit-backface-visibility: visible;
+  perspective: none;
+}
+
+.mermaid-preview-container .react-transform-component {
+  /* 禁用TransformComponent的硬件加速 */
+  will-change: auto;
+  transform: none;
+  backface-visibility: visible;
+  -webkit-backface-visibility: visible;
+  perspective: none;
+}
+
+/* 禁用文本选择以提高拖拽性能 */
+.mermaid-preview-container * {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+/* 编辑器优化 */
+.editor-textarea {
+  font-variant-ligatures: none;
+  text-rendering: optimizeSpeed;
+}
+
+.syntax-highlight-layer {
+  will-change: scroll-position;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.line-numbers {
+  will-change: scroll-position;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}

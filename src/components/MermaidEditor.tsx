@@ -1,9 +1,14 @@
 /**
  * Mermaid 代码编辑器组件
- * 提供语法高亮和实时编辑功能
+ * 使用react-syntax-highlighter提供专业的语法高亮
  */
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Textarea } from '@/components/ui/textarea'
+import { Button } from '@/components/ui/button'
+import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
+import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { Copy, Check } from 'lucide-react'
+import { toast } from 'sonner'
 
 interface MermaidEditorProps {
   value: string
@@ -13,16 +18,19 @@ interface MermaidEditorProps {
 
 export default function MermaidEditor({ value, onChange, className = '' }: MermaidEditorProps) {
   const [localValue, setLocalValue] = useState(value)
+  const [copied, setCopied] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const lineNumbersRef = useRef<HTMLDivElement>(null)
-  const debounceTimerRef = useRef<NodeJS.Timeout>()
+  const highlightRef = useRef<HTMLDivElement>(null)
+  const debounceTimerRef = useRef<NodeJS.Timeout | undefined>(undefined)
+  const copyTimerRef = useRef<NodeJS.Timeout | undefined>(undefined)
 
   useEffect(() => {
     setLocalValue(value)
   }, [value])
 
   /**
-   * 防抖处理onChange事件，减少频繁的父组件更新
+   * 防抖处理onChange事件
    */
   const debouncedOnChange = useCallback((newValue: string) => {
     if (debounceTimerRef.current) {
@@ -30,7 +38,7 @@ export default function MermaidEditor({ value, onChange, className = '' }: Merma
     }
     debounceTimerRef.current = setTimeout(() => {
       onChange(newValue)
-    }, 300) // 300ms防抖延迟
+    }, 300)
   }, [onChange])
 
   const handleChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -40,24 +48,70 @@ export default function MermaidEditor({ value, onChange, className = '' }: Merma
   }, [debouncedOnChange])
 
   /**
-   * 优化滚动同步处理，使用requestAnimationFrame
+   * 同步滚动处理
    */
   const handleScroll = useCallback(() => {
-    if (textareaRef.current && lineNumbersRef.current) {
+    if (textareaRef.current && lineNumbersRef.current && highlightRef.current) {
+      const scrollTop = textareaRef.current.scrollTop
+      const scrollLeft = textareaRef.current.scrollLeft
+      
       requestAnimationFrame(() => {
-        if (textareaRef.current && lineNumbersRef.current) {
-          lineNumbersRef.current.scrollTop = textareaRef.current.scrollTop
+        if (lineNumbersRef.current) {
+          lineNumbersRef.current.scrollTop = scrollTop
+        }
+        if (highlightRef.current) {
+          highlightRef.current.scrollTop = scrollTop
+          highlightRef.current.scrollLeft = scrollLeft
         }
       })
     }
   }, [])
 
+
+
   /**
-   * 使用useMemo缓存行号计算，只在内容变化时重新计算
+   * 计算行号 - 使用memoization优化性能
    */
-  const lineNumbers = useMemo(() => {
-    const lineCount = localValue.split('\n').length
-    return Array.from({ length: lineCount }, (_, i) => i + 1)
+  const lineCount = localValue.split('\n').length
+  const lineNumbers = useMemo(() => 
+    Array.from({ length: lineCount }, (_, i) => i + 1), 
+    [lineCount]
+  )
+
+  /**
+   * 自定义样式覆盖
+   */
+  const customStyle = {
+    margin: 0,
+    padding: '12px',
+    background: 'transparent',
+    fontSize: '14px',
+    lineHeight: '21px',
+    fontFamily: 'ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+    overflow: 'visible',
+    whiteSpace: 'pre' as const,
+    wordBreak: 'normal' as const,
+    overflowWrap: 'normal' as const,
+  }
+
+  /**
+   * 复制代码到剪贴板
+   */
+  const handleCopyCode = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(localValue)
+      setCopied(true)
+      
+      // 3秒后恢复图标
+      if (copyTimerRef.current) {
+        clearTimeout(copyTimerRef.current)
+      }
+      copyTimerRef.current = setTimeout(() => {
+        setCopied(false)
+      }, 3000)
+    } catch (error) {
+      console.error('复制失败:', error)
+    }
   }, [localValue])
 
   // 清理定时器
@@ -65,6 +119,9 @@ export default function MermaidEditor({ value, onChange, className = '' }: Merma
     return () => {
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current)
+      }
+      if (copyTimerRef.current) {
+        clearTimeout(copyTimerRef.current)
       }
     }
   }, [])
@@ -74,6 +131,19 @@ export default function MermaidEditor({ value, onChange, className = '' }: Merma
       <div className="flex-shrink-0 px-4 py-2 bg-gray-50 border-b border-gray-200">
         <div className="flex items-center justify-between">
           <span className="text-xs font-medium text-gray-600">Mermaid 代码编辑器</span>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleCopyCode}
+            className="h-6 px-2 text-xs flex items-center gap-1"
+          >
+            {copied ? (
+              <Check className="w-3 h-3 text-green-600" />
+            ) : (
+              <Copy className="w-3 h-3" />
+            )}
+            复制
+          </Button>
         </div>
       </div>
       
@@ -81,13 +151,22 @@ export default function MermaidEditor({ value, onChange, className = '' }: Merma
         {/* 行号区域 */}
         <div 
           ref={lineNumbersRef}
-          className="flex-shrink-0 w-12 bg-gray-50 border-r border-gray-200 overflow-y-hidden"
+          className="line-numbers flex-shrink-0 w-12 bg-gray-50 border-r border-gray-200 overflow-hidden"
+          style={{ 
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none'
+          }}
         >
-          <div className="py-3 px-2">
+          <div style={{ padding: '12px 8px' }}>
             {lineNumbers.map((lineNum) => (
               <div 
                 key={lineNum} 
-                className="text-xs text-gray-400 text-right leading-6 font-mono"
+                className="text-xs text-gray-400 text-right font-mono"
+                style={{ 
+                  height: '21px',
+                  lineHeight: '21px',
+                  fontSize: '14px'
+                }}
               >
                 {lineNum}
               </div>
@@ -96,14 +175,47 @@ export default function MermaidEditor({ value, onChange, className = '' }: Merma
         </div>
         
         {/* 代码编辑区域 */}
-        <div className="flex-1 relative overflow-hidden">
+        <div className="flex-1 relative">
+          {/* 语法高亮层 */}
+          <div 
+            ref={highlightRef}
+            className="syntax-highlight-layer absolute inset-0 overflow-hidden pointer-events-none z-0"
+            style={{ 
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none'
+            }}
+          >
+            <SyntaxHighlighter
+              language="javascript"
+              style={tomorrow}
+              customStyle={customStyle}
+              showLineNumbers={false}
+              wrapLines={false}
+              lineProps={{ style: { display: 'block', height: '21px', lineHeight: '21px', whiteSpace: 'pre' } }}
+            >
+              {localValue || ' '}
+            </SyntaxHighlighter>
+          </div>
+          
+          {/* 透明的文本输入框 */}
           <Textarea
             ref={textareaRef}
             value={localValue}
             onChange={handleChange}
             onScroll={handleScroll}
             placeholder="在这里输入您的 Mermaid 代码..."
-            className="w-full h-full resize-none font-mono text-sm bg-transparent text-gray-800 border-none focus:ring-0 focus:outline-none placeholder-gray-400 leading-6 p-3 overflow-y-auto rounded-none"
+            className="editor-textarea w-full h-full resize-none font-mono bg-transparent border-none focus:ring-0 focus:outline-none placeholder-gray-400 rounded-none relative z-10"
+            style={{ 
+              color: localValue ? 'transparent' : '#9ca3af',
+              caretColor: '#374151',
+              padding: '12px',
+              fontSize: '14px',
+              lineHeight: '21px',
+              overflow: 'auto',
+              whiteSpace: 'pre',
+              wordWrap: 'normal',
+              overflowWrap: 'normal'
+            }}
             spellCheck={false}
           />
         </div>
