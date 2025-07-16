@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Copy, Eye, FileText, GitBranch, Users, BarChart3, Calendar, Brain, Network } from 'lucide-react'
 
 interface ExampleTemplatesProps {
@@ -833,99 +834,114 @@ export default function ExampleTemplates({ onSelectTemplate }: ExampleTemplatesP
   }
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex-1 overflow-y-auto">
-        <Tabs defaultValue="flowchart" className="h-full flex flex-col">
-          <div className="flex-shrink-0 px-4 py-2 border-b border-gray-200">
-            <div className="overflow-x-auto">
-              <TabsList className="inline-flex gap-1 bg-gray-100 p-1 rounded-md h-auto min-w-max">
-                {categories.map((category) => (
-                  <TabsTrigger
-                    key={category.key}
-                    value={category.key}
-                    className="text-xs py-2 px-3 rounded-sm flex items-center gap-1.5 whitespace-nowrap"
-                  >
-                    {category.icon}
-                    {category.label}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-            </div>
-          </div>
-          
-          <div className="flex-1 overflow-y-auto">
+    <Tabs defaultValue="flowchart" className="h-full flex flex-col bg-white">
+      <div className="flex-shrink-0 px-6 py-5 bg-white border-b border-slate-200">
+        <div className="mb-5">
+          <h2 className="text-lg font-semibold text-slate-900 mb-2">示例模板</h2>
+          <p className="text-sm text-slate-600">选择一个模板快速开始创建图表</p>
+        </div>
+        <div>
+          <TabsList className="flex gap-0.5 bg-slate-100 p-0.5 h-auto w-full rounded-lg">
             {categories.map((category) => (
-              <TabsContent key={category.key} value={category.key} className="mt-0">
-                <div className="p-4 space-y-3">
-                  {templatesByCategory[category.key]?.map((template) => (
-                    <Card 
-                      key={template.id} 
-                      className={`cursor-pointer hover:shadow-md transition-all duration-200 ${
-                        selectedTemplate === template.id ? 'ring-2 ring-blue-500 shadow-md' : ''
-                      }`}
-                      onClick={() => handleSelectTemplate(template)}
-                    >
-                      <CardHeader className="pb-3">
-                        <div className="flex items-start justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="p-1.5 bg-blue-100 rounded-md text-blue-600">
-                              {template.icon}
-                            </div>
-                            <div>
-                              <CardTitle className="text-sm font-medium">
-                                {template.name}
-                              </CardTitle>
-                              <CardDescription className="text-xs mt-1">
-                                {template.description}
-                              </CardDescription>
-                            </div>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="p-1.5 h-auto"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleCopyCode(template.code)
-                            }}
-                          >
-                            <Copy className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="pt-0">
-                        <div className="bg-gray-50 rounded-md p-3">
-                          <pre className="text-xs text-gray-700 overflow-x-auto whitespace-pre-wrap">
-                            {template.code.split('\n').slice(0, 5).join('\n')}
-                            {template.code.split('\n').length > 5 && '\n...'}
-                          </pre>
-                        </div>
-                        <div className="flex justify-between items-center mt-3">
-                          <Badge variant="secondary" className="text-xs">
-                            {category.label}
-                          </Badge>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-xs h-7"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleSelectTemplate(template)
-                            }}
-                          >
-                            <Eye className="w-3 h-3 mr-1" />
-                            使用模板
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </TabsContent>
+              <TabsTrigger
+                key={category.key}
+                value={category.key}
+                className="text-xs py-2 px-1 flex flex-col items-center gap-1 font-medium data-[state=active]:bg-white data-[state=active]:text-slate-900 data-[state=active]:shadow-sm text-slate-600 hover:text-slate-800 flex-1 justify-center transition-all duration-200 rounded-md min-w-0"
+                title={category.label}
+              >
+                <span className="text-slate-500 data-[state=active]:text-slate-700 flex-shrink-0">{category.icon}</span>
+                <span className="text-xs leading-none truncate w-full text-center">{category.label}</span>
+              </TabsTrigger>
             ))}
-          </div>
-        </Tabs>
+          </TabsList>
+        </div>
       </div>
-    </div>
+
+      <div className="flex-1 overflow-y-auto">
+        {categories.map((category) => (
+          <TabsContent key={category.key} value={category.key} className="mt-0">
+            <div className="p-6 space-y-4">
+              {templatesByCategory[category.key]?.map((template) => (
+                <Card
+                  key={template.id}
+                  className={`group cursor-pointer transition-all duration-200 border-slate-200 ${
+                    selectedTemplate === template.id 
+                      ? 'ring-2 ring-blue-500 bg-blue-50/50 border-blue-200' 
+                      : 'bg-white hover:bg-slate-50 hover:border-slate-300'
+                  }`}
+                  onClick={() => handleSelectTemplate(template)}
+                >
+                  <CardHeader className="pb-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-3">
+                        <div className={`p-2.5 rounded-lg transition-all duration-200 ${
+                          selectedTemplate === template.id 
+                            ? 'bg-blue-100 text-blue-600' 
+                            : 'bg-slate-100 text-slate-600 group-hover:bg-slate-200'
+                        }`}>
+                          {template.icon}
+                        </div>
+                        <div className="flex-1">
+                          <CardTitle className="text-base font-semibold text-slate-900 mb-1.5">{template.name}</CardTitle>
+                          <CardDescription className="text-sm text-slate-600 leading-relaxed">{template.description}</CardDescription>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="p-2 h-auto text-slate-400 hover:text-slate-600 hover:bg-slate-100 opacity-0 group-hover:opacity-100 transition-all duration-200 rounded-md"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleCopyCode(template.code)
+                        }}
+                      >
+                        <Copy className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className={`p-4 rounded-lg transition-all duration-200 ${
+                      selectedTemplate === template.id 
+                        ? 'bg-blue-50 border border-blue-200' 
+                        : 'bg-slate-50'
+                    }`}>
+                      <pre className="text-xs text-slate-700 overflow-hidden whitespace-pre-wrap font-mono leading-relaxed break-all">
+                        {template.code.split('\n').slice(0, 4).join('\n')}
+                        {template.code.split('\n').length > 4 && '\n...'}
+                      </pre>
+                    </div>
+                    <div className="flex justify-between items-center mt-4">
+                      <Badge variant="secondary" className={`text-xs font-medium px-2.5 py-1 rounded-full border-0 ${
+                        selectedTemplate === template.id 
+                          ? 'bg-blue-100 text-blue-700' 
+                          : 'bg-slate-100 text-slate-700'
+                      }`}>
+                        {category.label}
+                      </Badge>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={`text-xs h-8 px-3 font-medium transition-all duration-200 rounded-md ${
+                          selectedTemplate === template.id 
+                            ? 'border-blue-300 text-blue-700 bg-blue-50 hover:bg-blue-100' 
+                            : 'border-slate-300 text-slate-700 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-300'
+                        }`}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          handleSelectTemplate(template)
+                        }}
+                      >
+                        <Eye className="w-3.5 h-3.5 mr-1.5" />
+                        使用模板
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+        ))}
+      </div>
+    </Tabs>
   )
 }

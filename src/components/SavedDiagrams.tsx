@@ -128,14 +128,14 @@ export default function SavedDiagrams({ onSelectDiagram }: SavedDiagramsProps) {
    */
   const getCategoryInfo = (category: string) => {
     const categoryMap = {
-      flowchart: { label: '流程图', color: 'bg-blue-100 text-blue-800' },
-      sequence: { label: '序列图', color: 'bg-green-100 text-green-800' },
-      class: { label: '类图', color: 'bg-purple-100 text-purple-800' },
-      state: { label: '状态图', color: 'bg-orange-100 text-orange-800' },
-      gantt: { label: '甘特图', color: 'bg-red-100 text-red-800' },
-      pie: { label: '饼图', color: 'bg-yellow-100 text-yellow-800' },
-      mindmap: { label: '思维导图', color: 'bg-pink-100 text-pink-800' },
-      other: { label: '其他', color: 'bg-gray-100 text-gray-800' }
+      flowchart: { label: '流程图', color: 'bg-blue-50 text-blue-600' },
+      sequence: { label: '序列图', color: 'bg-green-50 text-green-600' },
+      class: { label: '类图', color: 'bg-purple-50 text-purple-600' },
+      state: { label: '状态图', color: 'bg-orange-50 text-orange-600' },
+      gantt: { label: '甘特图', color: 'bg-pink-50 text-pink-600' },
+      pie: { label: '饼图', color: 'bg-yellow-50 text-yellow-600' },
+      mindmap: { label: '思维导图', color: 'bg-indigo-50 text-indigo-600' },
+      other: { label: '其他', color: 'bg-gray-50 text-gray-600' }
     }
     return categoryMap[category as keyof typeof categoryMap] || categoryMap.other
   }
@@ -154,16 +154,16 @@ export default function SavedDiagrams({ onSelectDiagram }: SavedDiagramsProps) {
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col bg-gray-50">
       {/* 搜索栏 */}
-      <div className="flex-shrink-0 px-4 py-3 border-b border-gray-200">
+      <div className="flex-shrink-0 px-6 py-5 bg-white border-b border-gray-200">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
           <Input
             placeholder="搜索图表..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10 text-sm"
+            className="pl-10 text-sm border-0 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-100 transition-colors"
           />
         </div>
       </div>
@@ -173,7 +173,7 @@ export default function SavedDiagrams({ onSelectDiagram }: SavedDiagramsProps) {
         {filteredDiagrams.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-gray-500">
             <FileText className="w-12 h-12 mb-4 text-gray-300" />
-            <p className="text-sm">
+            <p className="text-sm font-medium">
               {diagrams.length === 0 ? '还没有保存的图表' : '没有找到匹配的图表'}
             </p>
             <p className="text-xs text-gray-400 mt-1">
@@ -181,70 +181,79 @@ export default function SavedDiagrams({ onSelectDiagram }: SavedDiagramsProps) {
             </p>
           </div>
         ) : (
-          <div className="p-4 space-y-3">
+          <div className="p-6 space-y-4">
             {filteredDiagrams.map((diagram) => {
               const categoryInfo = getCategoryInfo(diagram.category)
               
               return (
                 <Card 
                   key={diagram.id} 
-                  className={`cursor-pointer hover:shadow-md transition-all duration-200 ${
-                    selectedDiagram === diagram.id ? 'ring-2 ring-blue-500 shadow-md' : ''
+                  className={`group cursor-pointer border border-gray-200 bg-white hover:bg-gray-50 transition-all duration-200 ${
+                    selectedDiagram === diagram.id 
+                      ? 'ring-2 ring-blue-500 bg-blue-50/50 border-blue-200' 
+                      : 'hover:border-gray-300'
                   }`}
                   onClick={() => handleSelectDiagram(diagram)}
                 >
-                  <CardHeader className="pb-3">
+                  <CardHeader className="pb-4">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <CardTitle className="text-sm font-medium">
+                        <CardTitle className="text-sm font-semibold text-gray-900 mb-1">
                           {diagram.name}
                         </CardTitle>
-                        <CardDescription className="text-xs mt-1">
+                        <CardDescription className="text-xs text-gray-500 leading-relaxed">
                           {diagram.description}
                         </CardDescription>
                       </div>
-                      <div className="flex gap-1 ml-2">
+                      <div className="flex gap-1 ml-2 opacity-0 group-hover:opacity-100">
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="p-1.5 h-auto"
+                          className="p-2 h-auto text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
                           onClick={(e) => {
                             e.stopPropagation()
                             handleEditDiagram(diagram)
                           }}
                         >
-                          <Edit3 className="w-3 h-3" />
+                          <Edit3 className="w-3.5 h-3.5" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="p-1.5 h-auto text-red-600 hover:text-red-700"
+                          className="p-2 h-auto text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
                           onClick={(e) => {
                             e.stopPropagation()
                             handleDeleteDiagram(diagram.id)
                           }}
                         >
-                          <Trash2 className="w-3 h-3" />
+                          <Trash2 className="w-3.5 h-3.5" />
                         </Button>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="pt-0">
-                    <div className="bg-gray-50 rounded-md p-3 mb-3">
-                      <pre className="text-xs text-gray-700 overflow-x-auto whitespace-pre-wrap">
-                        {diagram.code.split('\n').slice(0, 3).join('\n')}
-                        {diagram.code.split('\n').length > 3 && '\n...'}
-                      </pre>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-2">
-                        <Badge className={`text-xs ${categoryInfo.color}`}>
+                    <div className="space-y-4">
+                      {/* 代码预览 */}
+                      <div className="bg-gray-50 p-3 border border-gray-200">
+                        <pre className="text-xs text-gray-600 font-mono leading-relaxed overflow-hidden">
+                          <code className="line-clamp-3">
+                            {diagram.code}
+                          </code>
+                        </pre>
+                      </div>
+                      
+                      {/* 分类和时间 */}
+                      <div className="flex items-center justify-between text-xs">
+                        <Badge 
+                          variant="secondary" 
+                          className={`${categoryInfo.color} text-xs px-3 py-1.5 font-medium border-0`}
+                        >
                           {categoryInfo.label}
                         </Badge>
-                        <span className="text-xs text-gray-500 flex items-center gap-1">
-                          <Calendar className="w-3 h-3" />
+                        <div className="flex items-center text-gray-400 font-medium">
+                          <Calendar className="w-3 h-3 mr-1" />
                           {formatDate(diagram.updatedAt)}
-                        </span>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
@@ -257,15 +266,15 @@ export default function SavedDiagrams({ onSelectDiagram }: SavedDiagramsProps) {
       
       {/* 编辑对话框 */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>编辑图表</DialogTitle>
+        <DialogContent className="sm:max-w-md bg-white border border-gray-200">
+          <DialogHeader className="pb-4">
+            <DialogTitle className="text-lg font-semibold text-gray-900">编辑图表</DialogTitle>
           </DialogHeader>
           {editingDiagram && (
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div>
-                <Label htmlFor="name" className="text-sm font-medium">
-                  名称
+                <Label htmlFor="name" className="text-sm font-medium text-gray-700 mb-2 block">
+                  图表名称
                 </Label>
                 <Input
                   id="name"
@@ -274,12 +283,12 @@ export default function SavedDiagrams({ onSelectDiagram }: SavedDiagramsProps) {
                     ...editingDiagram,
                     name: e.target.value
                   })}
-                  className="mt-1"
+                  className="border-0 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-100 transition-colors"
                 />
               </div>
               <div>
-                <Label htmlFor="description" className="text-sm font-medium">
-                  描述
+                <Label htmlFor="description" className="text-sm font-medium text-gray-700 mb-2 block">
+                  图表描述
                 </Label>
                 <Textarea
                   id="description"
@@ -288,18 +297,23 @@ export default function SavedDiagrams({ onSelectDiagram }: SavedDiagramsProps) {
                     ...editingDiagram,
                     description: e.target.value
                   })}
-                  className="mt-1"
+                  className="min-h-[80px] border-0 bg-gray-50 focus:bg-white focus:ring-2 focus:ring-blue-100 resize-none transition-colors"
                   rows={3}
+                  placeholder="请输入图表描述..."
                 />
               </div>
-              <div className="flex justify-end gap-2">
+              <div className="flex justify-end gap-3 pt-6">
                 <Button
                   variant="outline"
                   onClick={() => setIsDialogOpen(false)}
+                  className="border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-700 hover:border-gray-300 transition-colors"
                 >
                   取消
                 </Button>
-                <Button onClick={handleSaveEdit}>
+                <Button 
+                  onClick={handleSaveEdit}
+                  className="bg-blue-600 hover:bg-blue-700 text-white transition-colors"
+                >
                   <Save className="w-4 h-4 mr-2" />
                   保存
                 </Button>

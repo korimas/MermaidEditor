@@ -6,7 +6,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import mermaid from 'mermaid'
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
 import { Button } from '@/components/ui/button'
-import { ZoomIn, ZoomOut, RotateCcw, Maximize2, Copy, Download, Check, RefreshCw } from 'lucide-react'
+import { ZoomIn, ZoomOut, RotateCcw, Maximize2, Copy, Download, Check, RefreshCw, Eye } from 'lucide-react'
 import { toast } from 'sonner'
 import '../styles/preview.css'
 
@@ -500,30 +500,33 @@ export default function MermaidPreview({ code, className = '' }: MermaidPreviewP
 
   return (
     <div className={`flex flex-col h-full ${className}`}>
-      <div className="flex-shrink-0 px-4 py-2 bg-gray-50 border-b border-gray-200">
+      <div className="flex-shrink-0 px-4 py-3 bg-gray-50 border-b border-gray-200">
         <div className="flex items-center justify-between">
-          <span className="text-xs font-medium text-gray-600">图表预览</span>
           <div className="flex items-center gap-2">
+            <Eye className="w-4 h-4 text-green-600" />
+            <span className="text-sm font-semibold text-gray-800 tracking-wide">图表预览</span>
+          </div>
+          <div className="flex items-center gap-1">
             <Button
               variant="ghost"
               size="sm"
               onClick={handleForceRefresh}
-              className="h-6 px-2 text-xs flex items-center gap-1"
+              className="h-7 px-2 text-xs flex items-center gap-1.5 hover:bg-gray-100 transition-colors"
               title="强制重新渲染图表"
             >
-              <RefreshCw className="w-3 h-3" />
+              <RefreshCw className="w-3 h-3 text-gray-500" />
               刷新
             </Button>
             <Button
               variant="ghost"
               size="sm"
               onClick={handleCopyPng}
-              className="h-6 px-2 text-xs flex items-center gap-1"
+              className="h-7 px-2 text-xs flex items-center gap-1.5 hover:bg-gray-100 transition-colors"
             >
               {copied ? (
                 <Check className="w-3 h-3 text-green-600" />
               ) : (
-                <Copy className="w-3 h-3" />
+                <Copy className="w-3 h-3 text-gray-500" />
               )}
               复制PNG
             </Button>
@@ -531,9 +534,9 @@ export default function MermaidPreview({ code, className = '' }: MermaidPreviewP
               variant="ghost"
               size="sm"
               onClick={handleExportPng}
-              className="h-6 px-2 text-xs flex items-center gap-1"
+              className="h-7 px-2 text-xs flex items-center gap-1.5 hover:bg-gray-100 transition-colors"
             >
-              <Download className="w-3 h-3" />
+              <Download className="w-3 h-3 text-gray-500" />
               导出PNG
             </Button>
           </div>
@@ -590,38 +593,38 @@ export default function MermaidPreview({ code, className = '' }: MermaidPreviewP
             {({ zoomIn, zoomOut, resetTransform, centerView }) => (
               <>
                 {/* 控制工具栏 */}
-                <div className="absolute top-4 right-4 z-10 flex gap-2">
+                <div className="absolute top-4 right-4 z-10 flex gap-1.5">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => zoomIn()}
-                    className="bg-white/90 backdrop-blur-sm"
+                    className="bg-white hover:bg-gray-50 transition-colors"
                   >
-                    <ZoomIn className="w-4 h-4" />
+                    <ZoomIn className="w-4 h-4 text-gray-600" />
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => zoomOut()}
-                    className="bg-white/90 backdrop-blur-sm"
+                    className="bg-white hover:bg-gray-50 transition-colors"
                   >
-                    <ZoomOut className="w-4 h-4" />
+                    <ZoomOut className="w-4 h-4 text-gray-600" />
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => resetTransform()}
-                    className="bg-white/90 backdrop-blur-sm"
+                    className="bg-white hover:bg-gray-50 transition-colors"
                   >
-                    <RotateCcw className="w-4 h-4" />
+                    <RotateCcw className="w-4 h-4 text-gray-600" />
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => centerView()}
-                    className="bg-white/90 backdrop-blur-sm"
+                    className="bg-white hover:bg-gray-50 transition-colors"
                   >
-                    <Maximize2 className="w-4 h-4" />
+                    <Maximize2 className="w-4 h-4 text-gray-600" />
                   </Button>
                 </div>
 

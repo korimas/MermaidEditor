@@ -111,32 +111,34 @@ export default function Home() {
 
 
   return (
-    <div className="h-screen bg-gray-50 flex flex-col">
+    <div className="h-screen bg-gradient-to-br from-slate-50 to-slate-100/50 flex flex-col">
       {/* 顶部导航栏 */}
-      <header className="bg-white shadow-sm border-b border-gray-200 flex-shrink-0">
-        <div className="px-4 sm:px-6 lg:px-8">
+      <header className="bg-white/95 backdrop-blur-md border-b border-gray-200/80 flex-shrink-0">
+        <div className="px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <FileText className="w-8 h-8 text-blue-600 mr-3" />
-              <h1 className="text-2xl font-bold text-gray-900">Mermaid 在线编辑器</h1>
+              <div className="p-2 bg-blue-50 rounded-xl mr-3 border border-blue-100">
+                <FileText className="w-6 h-6 text-blue-600" />
+              </div>
+              <h1 className="text-xl font-semibold text-gray-900 tracking-tight">Mermaid 在线编辑器</h1>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
               <Drawer open={isTemplateDrawerOpen} onOpenChange={setIsTemplateDrawerOpen} direction="left">
                 <DrawerTrigger asChild>
-                  <Button variant="outline" size="sm" className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" className="flex items-center gap-2 border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900 hover:border-gray-300 transition-colors">
                     <BookOpen className="w-4 h-4" />
                     示例模板
                   </Button>
                 </DrawerTrigger>
-                <DrawerContent className="h-screen w-[640px] fixed left-0 top-0 border-r flex flex-col">
-                  <DrawerHeader className="border-b">
+                <DrawerContent className="h-screen w-[90vw] max-w-[600px] fixed left-0 top-0 bottom-0 border-r border-slate-200 bg-white flex flex-col">
+                  <DrawerHeader className="border-b border-slate-200 bg-white">
                     <div className="flex items-center justify-between">
                       <div>
-                        <DrawerTitle>示例模板</DrawerTitle>
-                        <DrawerDescription>选择一个模板快速开始</DrawerDescription>
+                        <DrawerTitle className="text-slate-900 font-medium">示例模板</DrawerTitle>
+                        <DrawerDescription className="text-slate-500">选择一个模板快速开始</DrawerDescription>
                       </div>
                       <DrawerClose asChild>
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" className="border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900 hover:border-gray-300 transition-colors">
                           <X className="w-4 h-4" />
                         </Button>
                       </DrawerClose>
@@ -153,20 +155,20 @@ export default function Home() {
 
               <Drawer open={isSavedDrawerOpen} onOpenChange={setIsSavedDrawerOpen} direction="left">
                 <DrawerTrigger asChild>
-                  <Button variant="outline" size="sm" className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" className="flex items-center gap-2 border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900 hover:border-gray-300 transition-colors">
                     <Save className="w-4 h-4" />
                     我的保存
                   </Button>
                 </DrawerTrigger>
-                <DrawerContent className="h-screen w-[640px] fixed left-0 top-0 border-r flex flex-col">
-                  <DrawerHeader className="border-b">
+                <DrawerContent className="h-screen w-[90vw] max-w-[600px] fixed left-0 top-0 bottom-0 border-r border-slate-200 bg-white flex flex-col">
+                  <DrawerHeader className="border-b border-slate-200 bg-white">
                     <div className="flex items-center justify-between">
                       <div>
-                        <DrawerTitle>我的保存</DrawerTitle>
-                        <DrawerDescription>管理您保存的图表</DrawerDescription>
+                        <DrawerTitle className="text-slate-900 font-medium">我的保存</DrawerTitle>
+                        <DrawerDescription className="text-slate-500">管理您保存的图表</DrawerDescription>
                       </div>
                       <DrawerClose asChild>
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="sm" className="border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900 hover:border-gray-300 transition-colors">
                           <X className="w-4 h-4" />
                         </Button>
                       </DrawerClose>
@@ -184,40 +186,42 @@ export default function Home() {
 
               <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
                 <DialogTrigger asChild>
-                  <Button size="sm" className="flex items-center gap-2">
+                  <Button size="sm" className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white transition-colors">
                     <Save className="w-4 h-4" />
                     保存图表
                   </Button>
                 </DialogTrigger>
-                <DialogContent>
+                <DialogContent className="bg-white border-slate-200">
                   <DialogHeader>
-                    <DialogTitle>保存图表</DialogTitle>
+                    <DialogTitle className="text-slate-900 font-medium">保存图表</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="name">图表名称</Label>
+                      <Label htmlFor="name" className="text-slate-700 font-medium">图表名称</Label>
                       <Input
                         id="name"
                         value={saveName}
                         onChange={(e) => setSaveName(e.target.value)}
                         placeholder="请输入图表名称"
+                        className="border-slate-200 focus:border-slate-400"
                       />
                     </div>
                     <div>
-                      <Label htmlFor="description">描述（可选）</Label>
+                      <Label htmlFor="description" className="text-slate-700 font-medium">描述（可选）</Label>
                       <Textarea
                         id="description"
                         value={saveDescription}
                         onChange={(e) => setSaveDescription(e.target.value)}
                         placeholder="请输入图表描述"
                         rows={3}
+                        className="border-slate-200 focus:border-slate-400"
                       />
                     </div>
-                    <div className="flex justify-end space-x-2">
-                      <Button variant="outline" onClick={() => setIsSaveDialogOpen(false)}>
+                    <div className="flex justify-end space-x-3">
+                      <Button variant="outline" onClick={() => setIsSaveDialogOpen(false)} className="border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900 hover:border-gray-300 transition-colors">
                         取消
                       </Button>
-                      <Button onClick={handleSaveDiagram}>
+                      <Button onClick={handleSaveDiagram} className="bg-blue-600 hover:bg-blue-700 text-white transition-colors">
                         保存
                       </Button>
                     </div>
@@ -234,41 +238,41 @@ export default function Home() {
         <ResizablePanelGroup direction="horizontal" className="h-full">
           {/* 左侧编辑器 */}
           <ResizablePanel defaultSize={20} minSize={20}>
-            <Card className="h-full border-0 rounded-none">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2">
-                  <Code className="w-5 h-5" />
-                  代码编辑器
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="h-[calc(100%-5rem)]">
+            <div className="h-full border-r border-gray-200 bg-white">
+              {/* <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                <div className="flex items-center gap-2">
+                  <Code className="w-4 h-4 text-blue-600" />
+                  <h2 className="text-sm font-semibold text-gray-900">代码编辑器</h2>
+                </div>
+              </div> */}
+              <div className="h-[calc(100%-3.5rem)]">
                 <MermaidEditor
                   value={mermaidCode}
                   onChange={handleCodeChange}
                   className="h-full"
                 />
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </ResizablePanel>
 
-          <ResizableHandle withHandle />
+          <ResizableHandle className="w-px bg-gray-300" />
 
           {/* 右侧预览区 */}
           <ResizablePanel defaultSize={80} minSize={30}>
-            <Card className="h-full border-0 rounded-none">
-              <CardHeader className="pb-4">
-                <CardTitle className="flex items-center gap-2">
-                  <Palette className="w-5 h-5" />
-                  预览
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="h-[calc(100%-5rem)]">
+            <div className="h-full bg-white">
+              {/* <div className="px-4 py-3 bg-gray-50 border-b border-gray-200">
+                <div className="flex items-center gap-2">
+                  <Palette className="w-4 h-4 text-green-600" />
+                  <h2 className="text-sm font-semibold text-gray-900">预览</h2>
+                </div>
+              </div> */}
+              <div className="h-[calc(100%-3.5rem)]">
                 <MermaidPreview
                   code={mermaidCode}
                   className="h-full"
                 />
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           </ResizablePanel>
         </ResizablePanelGroup>
       </main>
