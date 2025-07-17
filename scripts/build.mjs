@@ -5,6 +5,7 @@ import autoprefixer from 'autoprefixer'
 import tailwindcss from 'tailwindcss'
 import { copyFileSync, existsSync, mkdirSync } from 'fs'
 import { join } from 'path'
+import { exec } from 'child_process'
 
 const args = process.argv.slice(2)
 const isProd = args[0] === '--production'
@@ -72,13 +73,26 @@ if (isProd) {
 } else {
   const ctx = await esbuild.context(esbuildOpts)
   await ctx.watch()
-  const { hosts, port } = await ctx.serve()
+  const { hosts, port } = await ctx.serve({
+    port: 9000,
+    host: 'localhost'
+  })
   
   // 开发模式下也复制SEO文件
   copySEOFiles()
   
-  console.log(`Running on:`)
-  hosts.forEach((host) => {
-    console.log(`http://${host}:${port}`)
+  const serverUrl = `http://localhost:${port}`
+  console.log(`Running on: ${serverUrl}`)
+  
+  // 自动打开浏览器
+  const openCommand = process.platform === 'darwin' ? 'open' : 
+                     process.platform === 'win32' ? 'start' : 'xdg-open'
+  
+  exec(`${openCommand} ${serverUrl}`, (error) => {
+    if (error) {
+      console.log('无法自动打开浏览器，请手动访问:', serverUrl)
+    } else {
+      console.log('🚀 浏览器已自动打开！')
+    }
   })
 }
