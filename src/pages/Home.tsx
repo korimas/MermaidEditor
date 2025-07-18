@@ -188,12 +188,12 @@ export default function Home() {
                 <DialogTrigger asChild>
                   <Button size="sm" className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white transition-colors">
                     <Save className="w-4 h-4" />
-                    保存图表
+                    本地保存
                   </Button>
                 </DialogTrigger>
                 <DialogContent className="bg-white border-slate-200">
                   <DialogHeader>
-                    <DialogTitle className="text-slate-900 font-medium">保存图表</DialogTitle>
+                    <DialogTitle className="text-slate-900 font-medium">本地保存</DialogTitle>
                   </DialogHeader>
                   <div className="space-y-4">
                     <div>

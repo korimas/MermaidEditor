@@ -46,19 +46,48 @@ export default function MermaidPreview({ code, className = '' }: MermaidPreviewP
         // 克隆SVG并准备数据
         const clonedSvg = svgElement.cloneNode(true) as SVGElement
         clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg')
+        clonedSvg.setAttribute('xmlns:xlink', 'http://www.w3.org/1999/xlink')
         clonedSvg.setAttribute('width', svgWidth.toString())
         clonedSvg.setAttribute('height', svgHeight.toString())
+        
+        // 确保SVG有正确的viewBox
+        if (!clonedSvg.getAttribute('viewBox')) {
+          clonedSvg.setAttribute('viewBox', `0 0 ${svgWidth} ${svgHeight}`)
+        }
 
-        // 获取SVG的HTML字符串
-        const svgData = clonedSvg.outerHTML
-
-        // 使用base64编码避免CSP问题
-        const svgBase64 = btoa(unescape(encodeURIComponent(svgData)))
-        const svgDataUrl = `data:image/svg+xml;base64,${svgBase64}`
+        // 获取SVG的HTML字符串并清理
+        let svgData = new XMLSerializer().serializeToString(clonedSvg)
+        
+        // 修复可能的编码问题
+        svgData = svgData.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F-\u009F]/g, '')
+        
+        // 使用更安全的编码方式
+        let svgDataUrl: string
+        try {
+          // 尝试使用encodeURIComponent
+          svgDataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svgData)}`
+        } catch (encodeError) {
+          // 降级到base64编码
+          console.warn('encodeURIComponent失败，使用base64编码:', encodeError)
+          try {
+            const svgBase64 = btoa(unescape(encodeURIComponent(svgData)))
+            svgDataUrl = `data:image/svg+xml;base64,${svgBase64}`
+          } catch (base64Error) {
+            console.error('base64编码也失败:', base64Error)
+            reject(new Error('SVG数据编码失败'))
+            return
+          }
+        }
 
         const img = new Image()
+        
+        // 设置超时机制
+        const timeout = setTimeout(() => {
+          reject(new Error('图片加载超时'))
+        }, 10000) // 10秒超时
 
         img.onload = () => {
+          clearTimeout(timeout)
           try {
             // 设置Canvas尺寸
             canvas.width = svgWidth * scale
@@ -81,7 +110,10 @@ export default function MermaidPreview({ code, className = '' }: MermaidPreviewP
         }
 
         img.onerror = (error) => {
+          clearTimeout(timeout)
           console.error('图片加载失败:', error)
+          console.error('SVG数据URL长度:', svgDataUrl.length)
+          console.error('SVG数据前100字符:', svgDataUrl.substring(0, 100))
           reject(new Error('图片加载失败'))
         }
 
@@ -182,6 +214,7 @@ export default function MermaidPreview({ code, className = '' }: MermaidPreviewP
       downloadLink.click()
     } catch (error) {
       console.error('导出PNG失败:', error)
+      toast.error('PNG导出失败，正在切换为SVG格式...', { id: 'png-export' })
 
       // 降级方案：导出SVG
       try {
@@ -195,6 +228,7 @@ export default function MermaidPreview({ code, className = '' }: MermaidPreviewP
         URL.revokeObjectURL(svgUrl)
       } catch (fallbackError) {
         console.error('导出失败:', fallbackError)
+        toast.error('导出失败，请重试', { id: 'png-export' })
       }
     }
   }, [svgToPng])
