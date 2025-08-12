@@ -332,17 +332,19 @@ export default function MermaidPreview({ code, className = '' }: MermaidPreviewP
   }, [])
 
   useEffect(() => {
-    if (!code || !containerRef.current) return
+    console.log("update")
+    console.log("code:", code)
+    console.log("lastCode:",lastCode)
 
-    // 只有在代码没有变化且没有错误时才跳过渲染
-    if (code === lastCode && !error) {
-      return
-    }
+    if(!code) return
+    if(code === lastCode) return
 
-    // 如果有错误状态，先清除错误以便重新渲染
     if (error) {
       setError(null)
     }
+
+    // 容器未挂载时，等待下一次effect再渲染
+    if (!containerRef.current) return
 
     // 清理之前的定时器
     if (renderTimeoutRef.current) {
@@ -511,6 +513,8 @@ export default function MermaidPreview({ code, className = '' }: MermaidPreviewP
       } catch (err) {
         console.error('渲染Mermaid图表失败:', err)
         setError(err instanceof Error ? err.message : '渲染失败')
+        // setErrorCode(code)
+        setLastCode(code)
 
         // 清空容器以确保不显示旧内容
         const container = containerRef.current

@@ -12,6 +12,18 @@ const isProd = args[0] === '--production'
 
 await rimraf('dist')
 
+// copy files from dist to docs
+function copyDistFilesToDocs() {
+  const distDir = join(process.cwd(), 'dist')
+  const docsDir = join(process.cwd(), 'docs')
+  
+  if (!existsSync(docsDir)) {
+    mkdirSync(docsDir, { recursive: true })
+  }
+  
+  exec(`cp -r ${distDir}/* ${docsDir}`)
+}
+
 /**
  * 复制SEO优化文件到dist目录
  */
@@ -69,6 +81,7 @@ if (isProd) {
   await esbuild.build(esbuildOpts)
   // 生产构建完成后复制SEO文件
   copySEOFiles()
+  copyDistFilesToDocs()
   console.log('🚀 生产构建完成！')
 } else {
   const ctx = await esbuild.context(esbuildOpts)

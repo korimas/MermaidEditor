@@ -245,7 +245,7 @@ export default function Home() {
                   <h2 className="text-sm font-semibold text-gray-900">代码编辑器</h2>
                 </div>
               </div> */}
-              <div className="h-[calc(100%-3.5rem)]">
+              <div className="h-full">
                 <MermaidEditor
                   value={mermaidCode}
                   onChange={handleCodeChange}
@@ -266,7 +266,7 @@ export default function Home() {
                   <h2 className="text-sm font-semibold text-gray-900">预览</h2>
                 </div>
               </div> */}
-              <div className="h-[calc(100%-3.5rem)]">
+              <div className="h-full">
                 <MermaidPreview
                   code={mermaidCode}
                   className="h-full"
