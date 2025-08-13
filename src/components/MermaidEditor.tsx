@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism'
-import { Copy, Check, Code, RefreshCw, FileText } from 'lucide-react'
+import { Copy, Check, Code, RefreshCw, FileText, Share2 } from 'lucide-react'
 
 interface MermaidEditorProps {
   value: string
@@ -22,11 +22,13 @@ interface MermaidEditorProps {
 export default function MermaidEditor({ value, onChange, className = '', onUpdate, showUpdate = false, activeTitle, activeFolder }: MermaidEditorProps) {
   const [localValue, setLocalValue] = useState(value)
   const [copied, setCopied] = useState(false)
+  const [shareCopied, setShareCopied] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const lineNumbersRef = useRef<HTMLDivElement>(null)
   const highlightRef = useRef<HTMLDivElement>(null)
   const debounceTimerRef = useRef<NodeJS.Timeout | undefined>(undefined)
   const copyTimerRef = useRef<NodeJS.Timeout | undefined>(undefined)
+  const shareTimerRef = useRef<NodeJS.Timeout | undefined>(undefined)
   const [windowWidth, setWindowWidth] = useState<number>(typeof window !== 'undefined' ? window.innerWidth : 1024)
 
   useEffect(() => {
@@ -138,6 +140,26 @@ export default function MermaidEditor({ value, onChange, className = '', onUpdat
     }
   }, [localValue])
 
+  /**
+   * 生成并复制分享链接
+   */
+  const handleCopyShareLink = useCallback(async () => {
+    try {
+      const bytes = new TextEncoder().encode(localValue)
+      let binary = ''
+      bytes.forEach(b => binary += String.fromCharCode(b))
+      const b64 = btoa(binary)
+      const urlSafe = b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/,'')
+      const url = `${window.location.origin}${window.location.pathname}?code=${urlSafe}`
+      await navigator.clipboard.writeText(url)
+      setShareCopied(true)
+      if (shareTimerRef.current) clearTimeout(shareTimerRef.current)
+      shareTimerRef.current = setTimeout(() => setShareCopied(false), 3000)
+    } catch (error) {
+      console.error('复制分享链接失败:', error)
+    }
+  }, [localValue])
+
   // 清理定时器
   useEffect(() => {
     return () => {
@@ -146,6 +168,9 @@ export default function MermaidEditor({ value, onChange, className = '', onUpdat
       }
       if (copyTimerRef.current) {
         clearTimeout(copyTimerRef.current)
+      }
+      if (shareTimerRef.current) {
+        clearTimeout(shareTimerRef.current)
       }
     }
   }, [])
@@ -170,6 +195,20 @@ export default function MermaidEditor({ value, onChange, className = '', onUpdat
             )}
           </div>
           <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCopyShareLink}
+              className="h-7 px-2 text-xs flex items-center gap-1.5 hover:bg-gray-100 transition-colors"
+              title="复制分享链接"
+            >
+              {shareCopied ? (
+                <Check className="w-3 h-3 text-green-600" />
+              ) : (
+                <Share2 className="w-3 h-3 text-gray-500" />
+              )}
+              分享
+            </Button>
             {showUpdate && onUpdate && (
               <Button
                 variant="ghost"

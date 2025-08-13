@@ -2,7 +2,7 @@
  * 首页组件
  * Mermaid在线编辑器的主界面
  */
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import MermaidEditor from '../components/MermaidEditor'
 import MermaidPreview from '../components/MermaidPreview'
 import ExampleTemplates from '../components/ExampleTemplates'
@@ -48,6 +48,43 @@ export default function Home() {
   const [activeDiagramId, setActiveDiagramId] = useState<string | null>(null)
   const [activeDiagramTitle, setActiveDiagramTitle] = useState<string>('')
   const [activeDiagramFolder, setActiveDiagramFolder] = useState<string>('')
+
+  // 支持通过 URL 参数 ?code=BASE64 预填充代码（兼容 URL-Safe Base64）
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search)
+      const raw = params.get('code')
+      console.log('raw', raw)
+      if (raw) {
+        // 兼容多种来源：
+        // - URL-safe Base64: '-' '_' → '+' '/'
+        // - '+' 被当作空格的情况: ' ' → '+'
+        // - 去除换行/制表符
+        const normalized = raw
+          .replace(/ /g, '+')
+          .replace(/[\r\n\t]/g, '')
+          .replace(/-/g, '+')
+          .replace(/_/g, '/')
+        const padded = normalized + '='.repeat((4 - (normalized.length % 4)) % 4)
+        // 优先尝试 atob，若失败回退到 decodeURIComponent + atob（应对未正确编码的参数）
+        let binary: string
+        try {
+          binary = atob(padded)
+        } catch {
+          binary = atob(decodeURIComponent(padded))
+        }
+        const bytes = Uint8Array.from(binary, c => c.charCodeAt(0))
+        const decoded = new TextDecoder().decode(bytes)
+        setMermaidCode(decoded)
+        setActiveDiagramId(null)
+        setActiveDiagramTitle('')
+        setActiveDiagramFolder('')
+      }
+    } catch (e) {
+      // 忽略无效的 base64 内容
+      console.error('解析 URL code 失败:', e)
+    }
+  }, [])
 
   /**
    * 处理代码变化
