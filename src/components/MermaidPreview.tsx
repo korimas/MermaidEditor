@@ -237,12 +237,32 @@ export default function MermaidPreview({ code, className = '' }: MermaidPreviewP
    * 强制重新渲染
    */
   const handleForceRefresh = useCallback(() => {
+    // 清理所有可能的mermaid错误元素
+    const errorElements = document.querySelectorAll('[id*="mermaid"], [id*="dmermaid"], .mermaid-error, .error-icon')
+    errorElements.forEach(el => {
+      if (el.parentNode && !containerRef.current?.contains(el)) {
+        el.remove()
+      }
+    })
+    
     setError(null)
     setLastCode('')  // 清空lastCode确保重新渲染
     setRenderKey(prev => prev + 1)  // 强制更新renderKey
   }, [])
 
   useEffect(() => {
+    // 清理页面中可能存在的mermaid错误元素
+    const cleanupMermaidElements = () => {
+      const errorElements = document.querySelectorAll('[id*="mermaid"], [id*="dmermaid"], .mermaid-error, .error-icon')
+      errorElements.forEach(el => {
+        if (el.parentNode && !containerRef.current?.contains(el)) {
+          el.remove()
+        }
+      })
+    }
+    
+    cleanupMermaidElements()
+    
     try {
       // 完整的Mermaid初始化配置
       mermaid.initialize({
@@ -319,7 +339,7 @@ export default function MermaidPreview({ code, className = '' }: MermaidPreviewP
     setLastCode('')
   }, [])
 
-  // 清理定时器
+  // 清理定时器和DOM元素
   useEffect(() => {
     return () => {
       if (copyTimerRef.current) {
@@ -328,6 +348,14 @@ export default function MermaidPreview({ code, className = '' }: MermaidPreviewP
       if (renderTimeoutRef.current) {
         clearTimeout(renderTimeoutRef.current)
       }
+      
+      // 组件卸载时清理所有可能的mermaid错误元素
+      const errorElements = document.querySelectorAll('[id*="mermaid"], [id*="dmermaid"], .mermaid-error, .error-icon')
+      errorElements.forEach(el => {
+        if (el.parentNode && !containerRef.current?.contains(el)) {
+          el.remove()
+        }
+      })
     }
   }, [])
 
@@ -368,11 +396,19 @@ export default function MermaidPreview({ code, className = '' }: MermaidPreviewP
         // 生成唯一的图表ID
         const chartId = `mermaid-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
-        // 清理可能存在的旧图表
+        // 清理可能存在的旧图表和错误元素
         const existingElement = document.getElementById(chartId)
         if (existingElement) {
           existingElement.remove()
         }
+        
+        // 清理所有可能的mermaid错误元素
+        const errorElements = document.querySelectorAll('[id*="mermaid"], [id*="dmermaid"], .mermaid-error, .error-icon')
+        errorElements.forEach(el => {
+          if (el.parentNode && !containerRef.current?.contains(el)) {
+            el.remove()
+          }
+        })
 
         // 完整的mermaid初始化配置
         try {
