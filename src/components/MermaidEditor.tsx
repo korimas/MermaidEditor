@@ -27,10 +27,18 @@ export default function MermaidEditor({ value, onChange, className = '', onUpdat
   const highlightRef = useRef<HTMLDivElement>(null)
   const debounceTimerRef = useRef<NodeJS.Timeout | undefined>(undefined)
   const copyTimerRef = useRef<NodeJS.Timeout | undefined>(undefined)
+  const [windowWidth, setWindowWidth] = useState<number>(typeof window !== 'undefined' ? window.innerWidth : 1024)
 
   useEffect(() => {
     setLocalValue(value)
   }, [value])
+
+  // 根据窗口宽度自适应截断策略
+  useEffect(() => {
+    const onResize = () => setWindowWidth(window.innerWidth)
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
 
   /**
    * 防抖处理onChange事件
@@ -97,6 +105,19 @@ export default function MermaidEditor({ value, onChange, className = '', onUpdat
     overflowWrap: 'normal' as const,
   }
 
+  // 中间截断：保留前后片段，适合很长名称/路径
+  const truncateMiddle = useCallback((text: string, maxChars: number) => {
+    if (!text) return ''
+    if (text.length <= maxChars) return text
+    const side = Math.max(2, Math.floor((maxChars - 1) / 2))
+    return `${text.slice(0, side)}…${text.slice(-side)}`
+  }, [])
+
+  const titleMax = windowWidth < 480 ? 16 : windowWidth < 768 ? 24 : 36
+  const folderMax = windowWidth < 480 ? 14 : windowWidth < 768 ? 22 : 32
+  const displayTitle = truncateMiddle(activeTitle || '', titleMax)
+  const displayFolder = truncateMiddle(activeFolder || '', folderMax)
+
   /**
    * 复制代码到剪贴板
    */
@@ -137,13 +158,13 @@ export default function MermaidEditor({ value, onChange, className = '', onUpdat
             <Code className="w-4 h-4 text-blue-600" />
             <span className="text-sm font-semibold text-gray-800 tracking-wide">Mermaid 代码编辑器</span>
           </div>
-          <div className="flex-1 flex items-center justify-center px-2">
+          <div className="flex-1 flex items-center justify-center px-2 min-w-0">
             {showUpdate && activeTitle && (
-              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 border border-blue-100 shadow-sm">
+              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 border border-blue-100 shadow-sm max-w-[70vw] md:max-w-[50vw] min-w-0">
                 <FileText className="w-3.5 h-3.5" />
-                <span className="text-xs font-medium truncate max-w-[40vw]" title={activeTitle}>{activeTitle}</span>
+                <span className="text-xs font-medium truncate" title={activeTitle}>{displayTitle}</span>
                 {activeFolder ? (
-                  <span className="text-[11px] text-blue-500/80 truncate max-w-[28vw]" title={activeFolder}>（{activeFolder}）</span>
+                  <span className="text-[11px] text-blue-500/80 truncate hidden sm:inline" title={activeFolder}>（{displayFolder}）</span>
                 ) : null}
               </div>
             )}
