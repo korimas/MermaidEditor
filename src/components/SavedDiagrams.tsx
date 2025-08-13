@@ -466,20 +466,19 @@ export default function SavedDiagrams({ onSelectDiagram }: SavedDiagramsProps) {
       return (
         <div key={fullPath} className="mb-1">
           <div 
-            className={`group flex items-center px-3 py-2 text-sm cursor-pointer rounded-md transition-all duration-200 ${
+            className={`group flex items-center px-3 py-2 text-sm cursor-pointer rounded-md transition-colors duration-200 ${
               dragOverFolder === fullPath 
-                ? 'bg-blue-100 text-blue-800 shadow-md ring-2 ring-blue-300 scale-[1.02]' 
+                ? 'bg-blue-100 text-blue-800 shadow-md ring-2 ring-blue-300' 
                 : selectedFolder === fullPath
-                ? 'bg-blue-50 text-blue-700 border border-blue-200'
+                ? 'bg-blue-50 text-blue-700'
                 : 'hover:bg-gray-100'
             }`}
             style={{ paddingLeft: `${12 + level * 16}px` }}
             onClick={(e) => {
-              // 如果点击的是展开/收起按钮，不处理选中状态
-              if ((e.target as HTMLElement).closest('button')) {
-                return
-              }
-              toggleFolderSelection(fullPath)
+              // 点击整个条目都可以展开/收起文件夹
+              toggleFolder(fullPath)
+              // 设置选中状态（不切换，直接设置为选中）
+              setSelectedFolder(fullPath)
             }}
             onContextMenu={(e) => {
               e.preventDefault()
@@ -533,7 +532,7 @@ export default function SavedDiagrams({ onSelectDiagram }: SavedDiagramsProps) {
               className="mr-2 p-0.5 hover:bg-gray-200 rounded"
               onClick={(e) => {
                 e.stopPropagation()
-                toggleFolder(fullPath)
+                // 不需要再调用toggleFolder，因为父元素的onClick已经处理了
               }}
             >
               {folder.expanded ? 
