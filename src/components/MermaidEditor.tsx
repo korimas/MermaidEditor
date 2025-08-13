@@ -156,7 +156,7 @@ export default function MermaidEditor({ value, onChange, className = '', onUpdat
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Code className="w-4 h-4 text-blue-600" />
-            <span className="text-sm font-semibold text-gray-800 tracking-wide">Mermaid 代码编辑器</span>
+            <span className="text-sm font-semibold text-gray-800 tracking-wide">编辑器</span>
           </div>
           <div className="flex-1 flex items-center justify-center px-2 min-w-0">
             {showUpdate && activeTitle && (
