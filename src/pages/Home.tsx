@@ -26,6 +26,7 @@ interface SavedDiagram {
   category: string
   createdAt: string
   updatedAt: string
+  folder?: string // 所属文件夹路径
 }
 
 export default function Home() {
@@ -41,6 +42,7 @@ export default function Home() {
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false)
   const [saveName, setSaveName] = useState('')
   const [saveDescription, setSaveDescription] = useState('')
+  const [saveFolder, setSaveFolder] = useState('')
   const [isTemplateDrawerOpen, setIsTemplateDrawerOpen] = useState(false)
   const [isSavedDrawerOpen, setIsSavedDrawerOpen] = useState(false)
 
@@ -82,7 +84,8 @@ export default function Home() {
       code: mermaidCode,
       category: getCategory(mermaidCode),
       createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
+      folder: saveFolder || undefined
     }
 
     savedDiagrams.push(newDiagram)
@@ -91,7 +94,16 @@ export default function Home() {
     setIsSaveDialogOpen(false)
     setSaveName('')
     setSaveDescription('')
+    setSaveFolder('')
   }, [mermaidCode, saveName, saveDescription])
+
+  /**
+   * 获取所有文件夹路径
+   */
+  const getAllFolderPaths = (): string[] => {
+    const savedFolders = localStorage.getItem('mermaid-folders')
+    return savedFolders ? JSON.parse(savedFolders) : []
+  }
 
   /**
    * 获取图表类型
@@ -216,6 +228,20 @@ export default function Home() {
                         rows={3}
                         className="border-slate-200 focus:border-slate-400"
                       />
+                    </div>
+                    <div>
+                      <Label htmlFor="folder" className="text-slate-700 font-medium">保存到文件夹</Label>
+                      <select
+                        id="folder"
+                        value={saveFolder}
+                        onChange={(e) => setSaveFolder(e.target.value)}
+                        className="w-full px-3 py-2 text-sm border border-slate-200 rounded-md focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-colors"
+                      >
+                        <option value="">根目录</option>
+                        {getAllFolderPaths().map(path => (
+                          <option key={path} value={path}>{path}</option>
+                        ))}
+                      </select>
                     </div>
                     <div className="flex justify-end space-x-3">
                       <Button variant="outline" onClick={() => setIsSaveDialogOpen(false)} className="border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900 hover:border-gray-300 transition-colors">

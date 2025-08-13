@@ -333,8 +333,8 @@ export default function MermaidPreview({ code, className = '' }: MermaidPreviewP
 
   useEffect(() => {
     console.log("update")
-    console.log("code:", code)
-    console.log("lastCode:",lastCode)
+    // console.log("code:", code)
+    // console.log("lastCode:",lastCode)
 
     if(!code) return
     if(code === lastCode) return
