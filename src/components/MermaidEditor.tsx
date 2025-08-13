@@ -7,15 +7,19 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism'
-import { Copy, Check, Code } from 'lucide-react'
+import { Copy, Check, Code, RefreshCw, FileText } from 'lucide-react'
 
 interface MermaidEditorProps {
   value: string
   onChange: (value: string) => void
   className?: string
+  onUpdate?: () => void
+  showUpdate?: boolean
+  activeTitle?: string
+  activeFolder?: string
 }
 
-export default function MermaidEditor({ value, onChange, className = '' }: MermaidEditorProps) {
+export default function MermaidEditor({ value, onChange, className = '', onUpdate, showUpdate = false, activeTitle, activeFolder }: MermaidEditorProps) {
   const [localValue, setLocalValue] = useState(value)
   const [copied, setCopied] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -133,19 +137,44 @@ export default function MermaidEditor({ value, onChange, className = '' }: Merma
             <Code className="w-4 h-4 text-blue-600" />
             <span className="text-sm font-semibold text-gray-800 tracking-wide">Mermaid 代码编辑器</span>
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleCopyCode}
-            className="h-7 px-2 text-xs flex items-center gap-1.5 hover:bg-gray-100 transition-colors"
-          >
-            {copied ? (
-              <Check className="w-3 h-3 text-green-600" />
-            ) : (
-              <Copy className="w-3 h-3 text-gray-500" />
+          <div className="flex-1 flex items-center justify-center px-2">
+            {showUpdate && activeTitle && (
+              <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 border border-blue-100 shadow-sm">
+                <FileText className="w-3.5 h-3.5" />
+                <span className="text-xs font-medium truncate max-w-[40vw]" title={activeTitle}>{activeTitle}</span>
+                {activeFolder ? (
+                  <span className="text-[11px] text-blue-500/80 truncate max-w-[28vw]" title={activeFolder}>（{activeFolder}）</span>
+                ) : null}
+              </div>
             )}
-            复制代码
-          </Button>
+          </div>
+          <div className="flex items-center gap-1">
+            {showUpdate && onUpdate && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onUpdate}
+                className="h-7 px-2 text-xs flex items-center gap-1.5 hover:bg-gray-100 transition-colors"
+                title="更新到我的保存"
+              >
+                <RefreshCw className="w-3 h-3 text-blue-600" />
+                更新
+              </Button>
+            )}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCopyCode}
+              className="h-7 px-2 text-xs flex items-center gap-1.5 hover:bg-gray-100 transition-colors"
+            >
+              {copied ? (
+                <Check className="w-3 h-3 text-green-600" />
+              ) : (
+                <Copy className="w-3 h-3 text-gray-500" />
+              )}
+              复制
+            </Button>
+          </div>
         </div>
       </div>
       

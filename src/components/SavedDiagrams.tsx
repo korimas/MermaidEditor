@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 
 interface SavedDiagramsProps {
-  onSelectDiagram: (code: string) => void
+  onSelectDiagram: (payload: { id: string; code: string }) => void
 }
 
 interface SavedDiagram {
@@ -269,8 +269,30 @@ export default function SavedDiagrams({ onSelectDiagram }: SavedDiagramsProps) {
    */
   const handleSelectDiagram = (diagram: SavedDiagram) => {
     setSelectedDiagram(diagram.id)
-    onSelectDiagram(diagram.code)
+    onSelectDiagram({ id: diagram.id, code: diagram.code })
   }
+
+  // 监听来自外部的“图表已更新”事件，实现实时刷新
+  useEffect(() => {
+    const refreshFromStorage = () => {
+      const saved = localStorage.getItem('mermaid-saved-diagrams')
+      if (saved) {
+        try {
+          setDiagrams(JSON.parse(saved))
+        } catch (e) {
+          console.error('刷新保存的图表失败:', e)
+        }
+      }
+    }
+    const handler = () => refreshFromStorage()
+    window.addEventListener('mermaid-diagrams-updated' as any, handler)
+    // 虽然同页面不会触发storage，但保留以兼容多标签
+    window.addEventListener('storage', handler)
+    return () => {
+      window.removeEventListener('mermaid-diagrams-updated' as any, handler)
+      window.removeEventListener('storage', handler)
+    }
+  }, [])
 
   /**
    * 编辑图表

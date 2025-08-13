@@ -45,6 +45,9 @@ export default function Home() {
   const [saveFolder, setSaveFolder] = useState('')
   const [isTemplateDrawerOpen, setIsTemplateDrawerOpen] = useState(false)
   const [isSavedDrawerOpen, setIsSavedDrawerOpen] = useState(false)
+  const [activeDiagramId, setActiveDiagramId] = useState<string | null>(null)
+  const [activeDiagramTitle, setActiveDiagramTitle] = useState<string>('')
+  const [activeDiagramFolder, setActiveDiagramFolder] = useState<string>('')
 
   /**
    * 处理代码变化
@@ -57,14 +60,27 @@ export default function Home() {
    * 处理选择模板
    */
   const handleSelectTemplate = useCallback((code: string) => {
+    setActiveDiagramId(null)
+    setActiveDiagramTitle('')
+    setActiveDiagramFolder('')
     setMermaidCode(code)
   }, [])
 
   /**
    * 处理选择保存的图表
    */
-  const handleSelectDiagram = useCallback((code: string) => {
-    setMermaidCode(code)
+  const handleSelectDiagram = useCallback((payload: { id: string; code: string }) => {
+    setActiveDiagramId(payload.id)
+    try {
+      const all: SavedDiagram[] = JSON.parse(localStorage.getItem('mermaid-saved-diagrams') || '[]')
+      const found = all.find(d => d.id === payload.id)
+      setActiveDiagramTitle(found?.name || '')
+      setActiveDiagramFolder(found?.folder || '')
+    } catch {
+      setActiveDiagramTitle('')
+      setActiveDiagramFolder('')
+    }
+    setMermaidCode(payload.code)
   }, [])
 
   /**
@@ -96,6 +112,20 @@ export default function Home() {
     setSaveDescription('')
     setSaveFolder('')
   }, [mermaidCode, saveName, saveDescription])
+
+  /**
+   * 更新当前打开的保存图表代码
+   */
+  const handleUpdateActiveDiagram = useCallback(() => {
+    if (!activeDiagramId) return
+    const savedDiagrams: SavedDiagram[] = JSON.parse(localStorage.getItem('mermaid-saved-diagrams') || '[]')
+    const next = savedDiagrams.map(d => d.id === activeDiagramId ? { ...d, code: mermaidCode, category: getCategory(mermaidCode), updatedAt: new Date().toISOString() } : d)
+    localStorage.setItem('mermaid-saved-diagrams', JSON.stringify(next))
+    // 主动派发事件通知侧边栏刷新
+    try {
+      window.dispatchEvent(new Event('mermaid-diagrams-updated'))
+    } catch {}
+  }, [activeDiagramId, mermaidCode])
 
   /**
    * 获取所有文件夹路径
@@ -187,8 +217,8 @@ export default function Home() {
                     </div>
                   </DrawerHeader>
                   <div className="flex-1 overflow-y-auto">
-                    <SavedDiagrams onSelectDiagram={(code) => {
-                      handleSelectDiagram(code)
+                  <SavedDiagrams onSelectDiagram={(payload) => {
+                      handleSelectDiagram(payload)
                       setIsSavedDrawerOpen(false)
                     }} />
                   </div>
@@ -276,6 +306,10 @@ export default function Home() {
                   value={mermaidCode}
                   onChange={handleCodeChange}
                   className="h-full"
+                  showUpdate={!!activeDiagramId}
+                  onUpdate={handleUpdateActiveDiagram}
+                  activeTitle={activeDiagramTitle}
+                  activeFolder={activeDiagramFolder}
                 />
               </div>
             </div>
