@@ -326,6 +326,9 @@ export default function MermaidPreview({ code, className = '' }: MermaidPreviewP
           // fontFamily: 'Arial, Helvetica, sans-serif',
           // fontSize: 14,
           // fontWeight: 'normal'
+        },
+        packet: {
+          useMaxWidth: false,
         }
       })
     } catch (error) {
@@ -473,6 +476,9 @@ export default function MermaidPreview({ code, className = '' }: MermaidPreviewP
               // fontFamily: 'Arial, Helvetica, sans-serif',
               // fontSize: 14,
               // fontWeight: 'normal'
+            },
+            packet: {
+              useMaxWidth: false,
             }
           })
         } catch (initError) {
