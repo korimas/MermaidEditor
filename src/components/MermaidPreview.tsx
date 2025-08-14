@@ -3,7 +3,7 @@
  * 渲染Mermaid图表的预览
  */
 import { useEffect, useRef, useState, useCallback } from 'react'
-import mermaid from 'mermaid'
+declare const mermaid: any
 import { TransformWrapper, TransformComponent } from 'react-zoom-pan-pinch'
 import { Button } from '@/components/ui/button'
 import { ZoomIn, ZoomOut, RotateCcw, Maximize2, Copy, Download, Check, RefreshCw, Eye } from 'lucide-react'

@@ -68,6 +68,7 @@ const esbuildOpts = {
     '.html': 'copy',
     '.png': 'file',
   },
+  external: ['mermaid'],
   plugins: [
     stylePlugin({
       postcss: {
